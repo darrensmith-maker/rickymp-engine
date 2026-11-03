@@ -115,6 +115,7 @@ namespace MWRender
         void rebuildRuntimeChain();
         void clearRuntimeChain();
         bool effectExists(const std::string& name) const;
+        std::string availableEffectName(const std::string& name) const;   // as discovered, "" if there is none
         std::shared_ptr<Fx::Technique> loadTechnique(const std::string& name);
 
         void captureWorldDepth(osg::RenderInfo& renderInfo);
@@ -137,7 +138,8 @@ namespace MWRender
         static osg::ref_ptr<osg::Texture2D> createDistortionTexture();
         static osg::ref_ptr<osg::Texture2D> createTargetTexture(const Fx::RenderTargetSpec& spec);
         static osg::ref_ptr<osg::Camera> createCamera(int orderNum, bool renderToTexture);
-        static osg::ref_ptr<osg::Geode> createFullscreenPass(osg::Program* program);
+        // name: how the pass is called if it raises an OpenGL error (logged once)
+        static osg::ref_ptr<osg::Geode> createFullscreenPass(osg::Program* program, const std::string& name);
         static osg::ref_ptr<osg::Program> createProgram(const std::string& name, const std::string& fragmentSource);
         static osg::ref_ptr<osg::Program> createProgram(
             const std::string& name, const std::string& vertexSource, const std::string& fragmentSource);

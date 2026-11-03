@@ -2,6 +2,7 @@
 
 #include <components/debug/debuglog.hpp>
 #include <components/fx/technique.hpp>
+#include <components/misc/stringops.hpp>
 #include <components/resource/imagemanager.hpp>
 #include <components/resource/resourcesystem.hpp>
 #include <components/vfs/manager.hpp>
@@ -50,6 +51,42 @@ namespace
         return value.size() >= suffix.size()
             && value.compare(value.size() - suffix.size(), suffix.size(), suffix) == 0;
     }
+
+    // Logs, once per pass, an OpenGL error raised while the pass's state was applied (program, uniforms, textures,
+    // target) or while it drew. OSG alone only reports "after RenderBin::draw(..)", which names neither the pass
+    // nor whether post-processing caused it at all.
+    class GLErrorProbe : public osg::Drawable::DrawCallback
+    {
+    public:
+        explicit GLErrorProbe(const std::string& name) : mName(name) {}
+
+        void drawImplementation(osg::RenderInfo& renderInfo, const osg::Drawable* drawable) const override
+        {
+            const GLenum before = takeError();
+            drawable->drawImplementation(renderInfo);
+            const GLenum after = takeError();
+            if ((before != GL_NO_ERROR || after != GL_NO_ERROR) && !mReported.exchange(true))
+            {
+                std::ostringstream code;
+                code << std::hex << (before != GL_NO_ERROR ? before : after);
+                Log(Debug::Warning) << "Post-processing pass '" << mName << "': OpenGL error 0x" << code.str()
+                                    << (before != GL_NO_ERROR ? " before its draw (program, uniforms, textures or target)"
+                                                              : " in its draw")
+                                    << " (reported once)";
+            }
+        }
+
+    private:
+        static GLenum takeError()
+        {
+            const GLenum first = glGetError();
+            for (int i = 0; i < 8 && glGetError() != GL_NO_ERROR; ++i) {}   // clear any further flags
+            return first;
+        }
+
+        std::string mName;
+        mutable std::atomic<bool> mReported{false};
+    };
 
     int getInternalFormat(const std::string& value)
     {
@@ -662,9 +699,21 @@ namespace MWRender
                          << mAvailableEffects.size() << " executable .omwfx effect(s)";
     }
 
+    std::string PostProcessor::availableEffectName(const std::string& name) const
+    {
+        // The data files are indexed in lower case, while settings and effect authors write "HBAO" or "SMAA";
+        // as in OpenMW 0.51, any letter case finds the effect
+        for (const std::string& effect : mAvailableEffects)
+        {
+            if (Misc::StringUtils::ciEqual(effect, name))
+                return effect;
+        }
+        return std::string();
+    }
+
     bool PostProcessor::effectExists(const std::string& name) const
     {
-        return std::find(mAvailableEffects.begin(), mAvailableEffects.end(), name) != mAvailableEffects.end();
+        return !availableEffectName(name).empty();
     }
 
     void PostProcessor::rebuildChainNames()
@@ -677,8 +726,9 @@ namespace MWRender
             effect = trim(effect);
             if (effect.empty())
                 continue;
-            if (effectExists(effect))
-                next.push_back(effect);
+            const std::string available = availableEffectName(effect);
+            if (!available.empty())
+                next.push_back(available);
             else
                 Log(Debug::Warning) << "Post-processing chain references missing/unsupported effect '" << effect << "'";
         }
@@ -923,7 +973,7 @@ namespace MWRender
 
                 pass->mCamera = createCamera(order++, true);
                 pass->mCamera->attach(osg::Camera::COLOR_BUFFER0, pass->mOutput);
-                osg::ref_ptr<osg::Geode> geode = createFullscreenPass(program);
+                osg::ref_ptr<osg::Geode> geode = createFullscreenPass(program, effectName + ":" + spec.mName);
                 pass->mState = geode->getOrCreateStateSet();
 
                 pass->mState->setTextureAttributeAndModes(0, effectInput, osg::StateAttribute::ON);
@@ -991,7 +1041,7 @@ namespace MWRender
         mProcessedOutput = mRuntimePasses.empty() ? mSceneTexture : previousEffectOutput;
         mFinalCamera = createCamera(order++, false);
         osg::ref_ptr<osg::Program> blitProgram = createBlitProgram();
-        osg::ref_ptr<osg::Geode> finalGeode = createFullscreenPass(blitProgram);
+        osg::ref_ptr<osg::Geode> finalGeode = createFullscreenPass(blitProgram, "final blit");
         mFinalState = finalGeode->getOrCreateStateSet();
         mFinalSampler = new osg::Uniform("sourceTexture", 0);
         mFinalState->addUniform(mFinalSampler);
@@ -1144,7 +1194,7 @@ namespace MWRender
         mEyeAdaptCamera->setViewport(0, 0, 1, 1);
         mEyeAdaptCamera->attach(osg::Camera::COLOR_BUFFER0, mEyeAdaptTextureA);
         osg::ref_ptr<osg::Program> program = createProgram("OpenMW52_EyeAdaptation", kEyeAdaptFragment);
-        osg::ref_ptr<osg::Geode> geode = createFullscreenPass(program);
+        osg::ref_ptr<osg::Geode> geode = createFullscreenPass(program, "eye adaptation");
         mEyeAdaptState = geode->getOrCreateStateSet();
         mEyeAdaptState->setTextureAttributeAndModes(0, mSceneTexture, osg::StateAttribute::ON);
         mEyeAdaptState->setTextureAttributeAndModes(1, mEyeAdaptTextureB, osg::StateAttribute::ON);
@@ -1161,7 +1211,7 @@ namespace MWRender
         mEyeAdaptCopyCamera = createCamera(order++, true);
         mEyeAdaptCopyCamera->setViewport(0, 0, 1, 1);
         mEyeAdaptCopyCamera->attach(osg::Camera::COLOR_BUFFER0, mEyeAdaptTextureB);
-        osg::ref_ptr<osg::Geode> copyGeode = createFullscreenPass(createBlitProgram());
+        osg::ref_ptr<osg::Geode> copyGeode = createFullscreenPass(createBlitProgram(), "eye adaptation copy");
         osg::StateSet* copyState = copyGeode->getOrCreateStateSet();
         copyState->setTextureAttributeAndModes(0, mEyeAdaptTextureA, osg::StateAttribute::ON);
         copyState->addUniform(new osg::Uniform("sourceTexture", 0));
@@ -1202,9 +1252,10 @@ namespace MWRender
         return camera;
     }
 
-    osg::ref_ptr<osg::Geode> PostProcessor::createFullscreenPass(osg::Program* program)
+    osg::ref_ptr<osg::Geode> PostProcessor::createFullscreenPass(osg::Program* program, const std::string& name)
     {
         osg::ref_ptr<osg::Geometry> geometry = new osg::Geometry;
+        geometry->setDrawCallback(new GLErrorProbe(name));
         geometry->setUseDisplayList(false);
         geometry->setUseVertexBufferObjects(true);
         geometry->setCullingActive(false);
