@@ -120,6 +120,11 @@ namespace MWRender
         // every frame
         osg::FrameBufferObject* sceneFbo() const { return mSceneFbo.get(); }
 
+        // Draws the transparent render bin. For the world it also starts the effects' depth copy from the opaque
+        // world and then adds the transparent objects clipped to their opaque texels (OpenMW 0.51's transparent
+        // post-pass), so leaf cards do not cover the sky in the copy with their see-through corners.
+        void drawTransparent(osgUtil::RenderBin* bin, osg::RenderInfo& renderInfo, osgUtil::RenderLeaf*& previous);
+
         // Fills the depth copy once per frame when nothing in first person did (third-person view); every effect
         // pass camera calls it before drawing
         void ensureWorldDepth(osg::RenderInfo& renderInfo);
@@ -145,6 +150,7 @@ namespace MWRender
         void drawFirstPersonDepth(osgUtil::RenderBin* bin, osg::RenderInfo& renderInfo, osgUtil::RenderLeaf*& previous);
         void copySceneDepth(osg::State& state);
         void createCopyFbos();
+        void createTransparentDepthState();
         void updateFinalSource();
         void resizeTargets(int width, int height);
         void createStateUniforms();
@@ -192,6 +198,7 @@ namespace MWRender
         float mAutoExposureSpeed = 0.9f;
         float mDeltaTime = 0.f;
         bool mChainDirty = true;
+        int mClearTargetFrames = 0;   // updates left in which effect targets are still cleared (see update)
         bool mReady = false;
         std::atomic<unsigned int> mWorldDepthFrame{~0u};   // frame whose depth is in mWorldDepthTexture
         std::atomic<unsigned int> mOutputChecks{0};   // how many of checkOutputOnce's samples are logged
@@ -225,6 +232,7 @@ namespace MWRender
         osg::ref_ptr<osg::FrameBufferObject> mWorldDepthFbo;
         osg::ref_ptr<osg::FrameBufferObject> mSceneColorFbo;
         osg::ref_ptr<osg::StateSet> mDepthOnlyState;
+        osg::ref_ptr<osg::StateSet> mTransparentDepthState;
         osg::ref_ptr<osg::Texture2D> mPingTextureA;
         osg::ref_ptr<osg::Texture2D> mPingTextureB;
         osg::ref_ptr<osg::Texture2D> mPingTextureC;

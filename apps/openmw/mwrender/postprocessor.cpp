@@ -16,7 +16,9 @@
 #include <sstream>
 #include <utility>
 
+#include <osg/BlendFunc>
 #include <osg/ColorMask>
+#include <osg/Depth>
 #include <osg/FrameBufferObject>
 #include <osg/FrameStamp>
 #include <osg/GLExtensions>
@@ -24,6 +26,7 @@
 #include <osg/Geometry>
 #include <osg/Group>
 #include <osg/Image>
+#include <osg/Material>
 #include <osg/Matrix>
 #include <osg/Program>
 #include <osg/RenderInfo>
@@ -43,7 +46,9 @@
 
 #include <osgUtil/CullVisitor>
 #include <osgUtil/RenderBin>
+#include <osgUtil/RenderLeaf>
 #include <osgUtil/RenderStage>
+#include <osgUtil/StateGraph>
 
 namespace
 {
@@ -137,6 +142,47 @@ namespace
                 processor->checkOutputOnce(renderInfo);
         }
     };
+
+    // The transparent render bin ("DepthSortedBin"), drawn through PostProcessor::drawTransparent
+    class TransparentDepthCallback : public osgUtil::RenderBin::DrawCallback
+    {
+    public:
+        void drawImplementation(osgUtil::RenderBin* bin, osg::RenderInfo& renderInfo,
+            osgUtil::RenderLeaf*& previous) override
+        {
+            if (MWRender::PostProcessor* processor = MWRender::PostProcessor::getActiveProcessor())
+                processor->drawTransparent(bin, renderInfo, previous);
+            else
+                bin->drawImplementation(renderInfo, previous);
+        }
+    };
+
+    // OpenMW 0.51's depthclipped shaders (files/shaders/compatibility/depthclipped.*): a transparent object's depth
+    // only where its texture is at least half opaque. Colour modes 2 and 4 take the alpha from the vertex colours
+    // (files/shaders/vertexcolors.glsl), the others from the material.
+    const char* kTransparentDepthVertex = R"GLSL(#version 120
+uniform int colorMode;
+varying vec2 diffuseMapUV;
+varying float alphaPassthrough;
+void main()
+{
+    gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+    gl_ClipVertex = gl_ModelViewMatrix * gl_Vertex;
+    alphaPassthrough = (colorMode == 2 || colorMode == 4) ? gl_Color.a : gl_FrontMaterial.diffuse.a;
+    diffuseMapUV = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
+}
+)GLSL";
+
+    const char* kTransparentDepthFragment = R"GLSL(#version 120
+uniform sampler2D diffuseMap;
+varying vec2 diffuseMapUV;
+varying float alphaPassthrough;
+void main()
+{
+    if (texture2D(diffuseMap, diffuseMapUV).a * alphaPassthrough < 0.499)
+        discard;
+}
+)GLSL";
 
     int getInternalFormat(const std::string& value)
     {
@@ -641,6 +687,12 @@ namespace MWRender
         mWorldDepthTexture = createDepthTexture();
         mDepthOnlyState = new osg::StateSet;
         mDepthOnlyState->setAttributeAndModes(new osg::ColorMask(false, false, false, false), osg::StateAttribute::ON);
+        createTransparentDepthState();
+
+        // Transparent objects go through drawTransparent, as OpenMW 0.51 replaces the same bin
+        osg::ref_ptr<osgUtil::RenderBin> depthSortedBin = new osgUtil::RenderBin(osgUtil::RenderBin::SORT_BACK_TO_FRONT);
+        depthSortedBin->setDrawCallback(new TransparentDepthCallback);
+        osgUtil::RenderBin::addRenderBinPrototype("DepthSortedBin", depthSortedBin);
         mPingTextureA = createSceneTexture();
         mPingTextureB = createSceneTexture();
         mPingTextureC = createSceneTexture();
@@ -1020,7 +1072,15 @@ namespace MWRender
                 }
 
                 pass->mCamera = createCamera(order++, true);
-                pass->mCamera->attach(osg::Camera::COLOR_BUFFER0, pass->mOutput);
+                // A target with mipmaps gets them rebuilt after every draw (wetworld's RT_H samples its lower
+                // levels); its clear colour is used on the frames it is cleared (see mClearTargetFrames)
+                pass->mCamera->attach(osg::Camera::COLOR_BUFFER0, pass->mOutput.get(), 0, 0,
+                    pass->mOutputSpec && pass->mOutputSpec->mMipMaps);
+                if (pass->mOutputSpec)
+                {
+                    const std::array<float, 4>& clear = pass->mOutputSpec->mClearColor;
+                    pass->mCamera->setClearColor(osg::Vec4f(clear[0], clear[1], clear[2], clear[3]));
+                }
                 pass->mCamera->setInitialDrawCallback(new WorldDepthCallback);
                 osg::ref_ptr<osg::Geode> geode = createFullscreenPass(program, effectName + ":" + spec.mName);
                 pass->mState = geode->getOrCreateStateSet();
@@ -1451,6 +1511,14 @@ namespace MWRender
         mWidth = std::max(1, width);
         mHeight = std::max(1, height);
 
+        // resized targets start undefined, so they are cleared once more
+        mClearTargetFrames = 2;
+        for (const std::unique_ptr<RuntimePass>& pass : mRuntimePasses)
+        {
+            if (pass->mCamera)
+                pass->mCamera->setClearMask(GL_COLOR_BUFFER_BIT);
+        }
+
         mSceneTexture->setTextureSize(mWidth, mHeight);
         mDepthTexture->setTextureSize(mWidth, mHeight);
         mWorldDepthTexture->setTextureSize(mWidth, mHeight);
@@ -1769,10 +1837,88 @@ namespace MWRender
     void PostProcessor::captureWorldDepth(osg::RenderInfo& renderInfo)
     {
         // R5.1 only marked this point; the depth effects then read a buffer the first-person clear had emptied (all
-        // "sky" except the arms). The world depth is copied out here instead.
-        copySceneDepth(*renderInfo.getState());
-        if (const osg::FrameStamp* stamp = renderInfo.getState()->getFrameStamp())
+        // "sky" except the arms). The world depth is copied out here instead, unless the transparent bin already
+        // made this frame's copy (which must be kept: it has leaves without their see-through card corners).
+        ensureWorldDepth(renderInfo);
+    }
+
+    void PostProcessor::createTransparentDepthState()
+    {
+        // As OpenMW 0.51's TransparentDepthBinCallback: the alpha-clip program, no blending, depth test and write.
+        // A white texture stands in on unit 0 for objects without one (theirs takes precedence).
+        osg::ref_ptr<osg::Image> white = new osg::Image;
+        white->allocateImage(1, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE);
+        white->setColor(osg::Vec4(1.f, 1.f, 1.f, 1.f), 0, 0);
+        osg::ref_ptr<osg::Texture2D> whiteTexture = new osg::Texture2D(white);
+
+        const osg::StateAttribute::OverrideValue off = osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE;
+        const osg::StateAttribute::OverrideValue on = osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE;
+        mTransparentDepthState = new osg::StateSet;
+        mTransparentDepthState->setTextureAttributeAndModes(0, whiteTexture);
+        mTransparentDepthState->setAttributeAndModes(new osg::BlendFunc, off);
+        mTransparentDepthState->setAttributeAndModes(
+            createProgram("RickyMP_TransparentDepth", kTransparentDepthVertex, kTransparentDepthFragment), on);
+        mTransparentDepthState->setAttributeAndModes(new osg::Depth(osg::Depth::LEQUAL, 0.0, 1.0, true), on);
+        for (unsigned int unit = 1; unit < 8; ++unit)
+            mTransparentDepthState->setTextureMode(unit, GL_TEXTURE_2D, off);
+    }
+
+    void PostProcessor::drawTransparent(osgUtil::RenderBin* bin, osg::RenderInfo& renderInfo,
+        osgUtil::RenderLeaf*& previous)
+    {
+        // Other cameras (water reflection, maps, previews) draw their transparent objects as usual
+        const osg::ref_ptr<osg::FrameBufferObject> scene = mSceneFbo;
+        const osg::ref_ptr<osg::FrameBufferObject> world = mWorldDepthFbo;
+        if (!scene || !world || !bin->getStage() || bin->getStage()->getFrameBufferObject() != scene.get())
+        {
+            bin->drawImplementation(renderInfo, previous);
+            return;
+        }
+
+        // The depth copy starts from the opaque world, before any transparent object writes its whole card
+        osg::State& state = *renderInfo.getState();
+        copySceneDepth(state);
+        if (const osg::FrameStamp* stamp = state.getFrameStamp())
             mWorldDepthFrame.store(stamp->getFrameNumber(), std::memory_order_release);
+
+        bin->drawImplementation(renderInfo, previous);
+
+        if (!mTransparentPostpass)
+            return;
+        osg::GLExtensions* ext = state.get<osg::GLExtensions>();
+        if (!ext || !ext->isFrameBufferObjectSupported)
+            return;
+
+        // Then the transparent objects again, into the copy only, clipped to their opaque texels (OpenMW 0.51's
+        // "transparent post-pass"). Particles and objects whose material is mostly see-through are left out.
+        GLint drawBinding = 0;
+        glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING_EXT, &drawBinding);
+        world->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
+        glDrawBuffer(GL_NONE);
+
+        unsigned int numToPop = previous ? osgUtil::StateGraph::numToPop(previous->_parent) : 0;
+        if (numToPop > 1)
+            --numToPop;
+        const unsigned int insertStateSetPosition = state.getStateSetStackSize() - numToPop;
+        state.insertStateSet(insertStateSetPosition, mTransparentDepthState.get());
+        for (osgUtil::RenderLeaf* leaf : bin->getRenderLeafList())
+        {
+            if (leaf->_drawable->getNodeMask() == Mask_ParticleSystem)
+                continue;
+            const osg::StateSet* stateSet = leaf->_parent->getStateSet();
+            if (stateSet && stateSet->getAttribute(osg::StateAttribute::MATERIAL))
+            {
+                const osg::Material* material
+                    = static_cast<const osg::Material*>(stateSet->getAttribute(osg::StateAttribute::MATERIAL));
+                if (material->getDiffuse(osg::Material::FRONT).a() < 0.5f)
+                    continue;
+            }
+            leaf->render(renderInfo, previous);
+            previous = leaf;
+        }
+        state.removeStateSet(insertStateSetPosition);
+
+        ext->glBindFramebuffer(GL_DRAW_FRAMEBUFFER_EXT, drawBinding);
     }
 
     void PostProcessor::drawFirstPersonDepth(osgUtil::RenderBin* bin, osg::RenderInfo& renderInfo,
@@ -1895,5 +2041,18 @@ namespace MWRender
 
         updateDynamicUniforms();
         applyPassVisibility();
+
+        // Effect targets are cleared on the first frame after they are created or resized, and then keep what
+        // they hold from frame to frame, as in OpenMW 0.51 (pingpongcanvas.cpp there). R5.1 cleared every pass
+        // target every frame, which erased the history SMB reads (its "no signal" static).
+        if (mClearTargetFrames > 0)
+        {
+            --mClearTargetFrames;
+            for (const std::unique_ptr<RuntimePass>& pass : mRuntimePasses)
+            {
+                if (pass->mCamera)
+                    pass->mCamera->setClearMask(mClearTargetFrames > 0 ? GL_COLOR_BUFFER_BIT : 0);
+            }
+        }
     }
 }
