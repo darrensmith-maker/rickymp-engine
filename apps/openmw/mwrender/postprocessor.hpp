@@ -18,6 +18,7 @@
 namespace osg
 {
     class FrameBufferObject;
+    class NodeCallback;
     class Geode;
     class Group;
     class Program;
@@ -114,6 +115,10 @@ namespace MWRender
         static void captureWorldDepthBeforeFirstPersonClear(osg::RenderInfo& renderInfo);
         static void addFirstPersonDepth(osgUtil::RenderBin* bin, osg::RenderInfo& renderInfo,
             osgUtil::RenderLeaf*& previous);
+
+        // The framebuffer the world is drawn into (mSceneTexture and mDepthTexture), set on the main render stage
+        // every frame
+        osg::FrameBufferObject* sceneFbo() const { return mSceneFbo.get(); }
 
         // Fills the depth copy once per frame when nothing in first person did (third-person view); every effect
         // pass camera calls it before drawing
@@ -214,6 +219,8 @@ namespace MWRender
         osg::ref_ptr<osg::Texture2D> mSceneTexture;
         osg::ref_ptr<osg::Texture2D> mDepthTexture;
         osg::ref_ptr<osg::Texture2D> mWorldDepthTexture;   // what effects sample as depth (see captureWorldDepth)
+        osg::ref_ptr<osg::FrameBufferObject> mSceneFbo;
+        osg::ref_ptr<osg::NodeCallback> mSceneFboCallback;
         osg::ref_ptr<osg::FrameBufferObject> mSceneDepthFbo;
         osg::ref_ptr<osg::FrameBufferObject> mWorldDepthFbo;
         osg::ref_ptr<osg::FrameBufferObject> mSceneColorFbo;

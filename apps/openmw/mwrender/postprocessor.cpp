@@ -39,7 +39,11 @@
 #include <osg/Vec4>
 #include <osg/Viewport>
 
+#include <osg/NodeCallback>
+
+#include <osgUtil/CullVisitor>
 #include <osgUtil/RenderBin>
+#include <osgUtil/RenderStage>
 
 namespace
 {
@@ -91,6 +95,25 @@ namespace
 
         std::string mName;
         mutable std::atomic<bool> mReported{false};
+    };
+
+    // Points the main render stage at the world framebuffer every frame, as OpenMW 0.51's PingPongCull does. R5.1
+    // instead switched the main camera to render-to-texture once, after the game had already drawn frames with it;
+    // that never took effect (Ricky's log: the world texture stayed 0 0 0, the world went to the window, and the
+    // final blit then covered it with that empty texture).
+    class SceneFboCullCallback : public osg::NodeCallback
+    {
+    public:
+        void operator()(osg::Node* node, osg::NodeVisitor* nv) override
+        {
+            if (nv->getVisitorType() == osg::NodeVisitor::CULL_VISITOR)
+            {
+                MWRender::PostProcessor* processor = MWRender::PostProcessor::getActiveProcessor();
+                if (osgUtil::RenderStage* stage = static_cast<osgUtil::CullVisitor*>(nv)->getCurrentRenderStage())
+                    stage->setFrameBufferObject(processor ? processor->sceneFbo() : nullptr);
+            }
+            traverse(node, nv);
+        }
     };
 
     // First thing in every effect pass: make sure this frame's depth copy exists (PostProcessor::ensureWorldDepth)
@@ -625,16 +648,11 @@ namespace MWRender
         mEyeAdaptTextureA = createEyeAdaptationTexture();
         mEyeAdaptTextureB = createEyeAdaptationTexture();
 
-        // Render the world directly into textures. This is the important R5.1
-        // correction: R3/R4 copied the framebuffer from a post-draw callback,
-        // which runs too late relative to child POST_RENDER cameras on OSG 3.6.
-        // The .omwfx passes therefore did not reliably see the current world frame.
-        // Direct FBO ownership follows the OpenMW 0.52 renderer model and makes
-        // live slider/uniform changes observable in the same frame.
-        mainCamera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER_OBJECT);
-        mainCamera->setImplicitBufferAttachmentMask(0, 0);
-        mainCamera->attach(osg::Camera::COLOR_BUFFER0, mSceneTexture);
-        mainCamera->attach(osg::Camera::DEPTH_BUFFER, mDepthTexture);
+        // Render the world directly into mSceneTexture / mDepthTexture: the main render stage gets the world
+        // framebuffer every frame from SceneFboCullCallback, as in OpenMW 0.51 (see there for why the camera
+        // itself is no longer switched to render-to-texture).
+        mSceneFboCallback = new SceneFboCullCallback;
+        rootNode->addCullCallback(mSceneFboCallback.get());
 
         sActiveProcessor.store(this, std::memory_order_release);
 
@@ -672,8 +690,8 @@ namespace MWRender
         sActiveProcessor.compare_exchange_strong(expected, nullptr, std::memory_order_acq_rel);
 
         clearRuntimeChain();
-        if (mMainCamera.valid())
-            mMainCamera->setRenderTargetImplementation(osg::Camera::FRAME_BUFFER);
+        if (mRootNode.valid() && mSceneFboCallback)
+            mRootNode->removeCullCallback(mSceneFboCallback.get());
     }
 
     void PostProcessor::discoverEffects()
@@ -1714,7 +1732,11 @@ namespace MWRender
 
     void PostProcessor::createCopyFbos()
     {
-        // Framebuffers for copying depth and for the one startup check; a new size needs new attachments
+        // The world framebuffer (SceneFboCullCallback), and framebuffers for copying depth and for the output
+        // check; a new size needs new attachments
+        mSceneFbo = new osg::FrameBufferObject;
+        mSceneFbo->setAttachment(osg::Camera::COLOR_BUFFER0, osg::FrameBufferAttachment(mSceneTexture.get()));
+        mSceneFbo->setAttachment(osg::Camera::DEPTH_BUFFER, osg::FrameBufferAttachment(mDepthTexture.get()));
         mSceneDepthFbo = new osg::FrameBufferObject;
         mSceneDepthFbo->setAttachment(osg::Camera::DEPTH_BUFFER, osg::FrameBufferAttachment(mDepthTexture.get()));
         mWorldDepthFbo = new osg::FrameBufferObject;
