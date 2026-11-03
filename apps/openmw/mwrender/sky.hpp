@@ -185,6 +185,9 @@ namespace MWRender
 
         float getBaseWindSpeed() const;
 
+        // RickyMP: post-processing state (omw.skyColor).
+        osg::Vec4f getSkyColor() const { return mSkyColour; }
+
         // Last sun occlusion-query visibility ratio, used by native light shafts.
 
     private:

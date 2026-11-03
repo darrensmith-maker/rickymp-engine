@@ -693,6 +693,9 @@ namespace MWRender
     {
         mAmbientColor = colour;
         updateAmbient();
+
+        if (mPostProcessor)
+            mPostProcessor->setAmbientColor(colour);
     }
 
     void RenderingManager::skySetDate(int day, int month)
@@ -755,13 +758,27 @@ namespace MWRender
         mSunLight->setDiffuse(diffuse);
         mSunLight->setSpecular(diffuse);
         mSunLight->setPosition(osg::Vec4f(-0.15f, 0.15f, 1.f, 0.f));
+
+        if (mPostProcessor)
+        {
+            // Post-processing sun for interiors, as OpenMW 0.51 sets it ("what Morrowind uses"). In exteriors the
+            // weather overrides it every frame through setSunDirection / setSunColour.
+            static const osg::Vec4f interiorSunPos
+                = osg::Vec4f(-1.f, osg::DegreesToRadians(45.f), osg::DegreesToRadians(45.f), 0.f);
+            mPostProcessor->setSunPos(interiorSunPos, false);
+            mPostProcessor->setSunVec(-interiorSunPos);
+            mPostProcessor->setSunColor(diffuse, 1.f);
+        }
     }
 
-    void RenderingManager::setSunColour(const osg::Vec4f& diffuse, const osg::Vec4f& specular)
+    void RenderingManager::setSunColour(const osg::Vec4f& diffuse, const osg::Vec4f& specular, float sunVis)
     {
         // need to wrap this in a StateUpdater?
         mSunLight->setDiffuse(diffuse);
         mSunLight->setSpecular(specular);
+
+        if (mPostProcessor)
+            mPostProcessor->setSunColor(diffuse, sunVis);
     }
 
     void RenderingManager::setSunDirection(const osg::Vec3f &direction)
@@ -771,6 +788,16 @@ namespace MWRender
         mSunLight->setPosition(osg::Vec4(position.x(), position.y(), position.z(), 0));
 
         mSky->setSunDirection(position);
+
+        if (mPostProcessor)
+        {
+            // As OpenMW 0.51: omw.sunPos is the sun disc on its orbit (below the horizon at night),
+            // omw.sunVec the light direction.
+            osg::Vec3f sunPos = position;
+            sunPos.z() = 400.f - std::abs(sunPos.x());
+            mPostProcessor->setSunPos(osg::Vec4f(sunPos, 0.f), mNight);
+            mPostProcessor->setSunVec(osg::Vec4f(-position, 0.f));
+        }
     }
 
     void RenderingManager::addCell(const MWWorld::CellStore *store)
@@ -949,6 +976,18 @@ namespace MWRender
         if (mPostProcessor)
         {
             mPostProcessor->setSceneContext(mStateUpdater->isInterior(), mUnderwaterFogActive);
+
+            // The rest of the "omw" state, as OpenMW 0.51's RenderingManager::update sets it
+            mPostProcessor->setFogRange(mFog->getFogStart(mUnderwaterFogActive), mFog->getFogEnd(mUnderwaterFogActive));
+            mPostProcessor->setFogColor(mFog->getFogColor(mUnderwaterFogActive));
+            mPostProcessor->setSkyColor(mSky->getSkyColor());
+            if (MWBase::World* world = MWBase::Environment::get().getWorld())
+            {
+                mPostProcessor->setGameHour(world->getTimeStamp().getHour());
+                mPostProcessor->setWeather(world->getCurrentWeather(), world->getNextWeather(),
+                    world->getWeatherTransition(), world->getWindSpeed());
+            }
+
             mPostProcessor->update(dt);
         }
 
@@ -1004,6 +1043,9 @@ namespace MWRender
     {
         mWater->setEnabled(enabled);
         mSky->setWaterEnabled(enabled);
+
+        if (mPostProcessor)
+            mPostProcessor->setWaterEnabled(enabled);
     }
 
     void RenderingManager::setWaterHeight(float height)
@@ -1011,6 +1053,9 @@ namespace MWRender
         mWater->setCullCallback(mTerrain->getHeightCullCallback(height, Mask_Water));
         mWater->setHeight(height);
         mSky->setWaterHeight(height);
+
+        if (mPostProcessor)
+            mPostProcessor->setWaterHeight(height);
     }
 
     void RenderingManager::screenshot(osg::Image* image, int w, int h)

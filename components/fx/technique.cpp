@@ -3,6 +3,7 @@
 #include "lexer.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <limits>
 #include <sstream>
@@ -131,8 +132,11 @@ namespace
         return result;
     }
 
-    Fx::FlagsType flagFor(const std::string& name)
+    Fx::FlagsType flagFor(std::string name)
     {
+        // Case-insensitive, as OpenMW 0.51 (ciEqual): effects write "Disable_AboveWater", "Disable_SunGlare"...
+        std::transform(name.begin(), name.end(), name.begin(),
+            [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
         if (name == "disable_interiors")
             return Fx::Technique::Flag_Disable_Interiors;
         if (name == "disable_exteriors")

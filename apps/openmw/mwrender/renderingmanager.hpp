@@ -131,7 +131,9 @@ namespace MWRender
         void skySetMoonColour(bool red);
 
         void setSunDirection(const osg::Vec3f& direction);
-        void setSunColour(const osg::Vec4f& diffuse, const osg::Vec4f& specular);
+        // sunVis: how visible the sun is (weather glare x time-of-day fade), for post-processing effects
+        void setSunColour(const osg::Vec4f& diffuse, const osg::Vec4f& specular, float sunVis = 1.f);
+        void setNight(bool isNight) { mNight = isNight; }
 
         void configureAmbient(const ESM::Cell* cell);
         void setCellInterior(bool interior);
@@ -314,6 +316,7 @@ namespace MWRender
         osg::Vec4f mAmbientColor;
         float mMinimumAmbientLuminance;
         float mNightEyeFactor;
+        bool mNight = false;
 
         float mNearClip;
         float mViewDistance;

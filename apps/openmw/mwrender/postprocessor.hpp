@@ -10,6 +10,8 @@
 #include <vector>
 
 #include <osg/Camera>
+#include <osg/Matrixf>
+#include <osg/Vec4f>
 #include <osg/observer_ptr>
 #include <osg/ref_ptr>
 
@@ -60,6 +62,21 @@ namespace MWRender
         void setSceneContext(bool interior, bool underwater);
         void processChangedSettings(const Settings::CategorySettingVector& settings);
 
+        // The "omw" state block every .omwfx pass reads, with the same fields and setters as OpenMW 0.51
+        // (components/fx/stateupdater.hpp there). RenderingManager feeds the world values below; the camera,
+        // resolution and time values are read here every frame.
+        void setFogRange(float fogNear, float fogFar);
+        void setFogColor(const osg::Vec4f& color);
+        void setAmbientColor(const osg::Vec4f& color);
+        void setSkyColor(const osg::Vec4f& color);
+        void setSunColor(const osg::Vec4f& color, float sunVis);
+        void setSunPos(const osg::Vec4f& pos, bool night);
+        void setSunVec(const osg::Vec4f& vec);
+        void setGameHour(float hour);
+        void setWeather(int weatherId, int nextWeatherId, float transition, float windSpeed);
+        void setWaterHeight(float height);
+        void setWaterEnabled(bool enabled);
+
         bool isEnabled() const { return mEnabled; }
         bool transparentPostpassEnabled() const { return mTransparentPostpass; }
         float autoExposureSpeed() const { return mAutoExposureSpeed; }
@@ -92,6 +109,8 @@ namespace MWRender
         void captureWorldDepth(osg::RenderInfo& renderInfo);
         void updateFinalSource();
         void resizeTargets(int width, int height);
+        void createStateUniforms();
+        osg::Uniform* stateUniform(const std::string& field) const;
         void updateDynamicUniforms();
         void updateEffectUniforms();
         void applyPassVisibility();
@@ -133,8 +152,13 @@ namespace MWRender
         float mSimulationTime = 0.f;
         float mNear = 1.f;
         float mFar = 8192.f;
-        float mInvProjectionScaleX = 1.f;
-        float mInvProjectionScaleY = 1.f;
+        float mFov = 60.f;
+        int mFrameNumber = 0;
+        osg::Matrixf mViewMatrix;
+        osg::Matrixf mPrevViewMatrix;
+
+        // "omw.<field>" uniforms, created once and shared by every pass, so a value is set in one place
+        std::unordered_map<std::string, osg::ref_ptr<osg::Uniform>> mStateUniforms;
 
         std::vector<std::string> mAvailableEffects;
         std::vector<std::string> mChain;

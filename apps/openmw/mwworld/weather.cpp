@@ -863,6 +863,7 @@ void WeatherManager::update(float duration, bool paused, const TimeStamp& time, 
             -0.268f, // approx tan( -15 degrees )
             static_cast<float>(sin(theta)));
         mRendering.setSunDirection( final * -1 );
+        mRendering.setNight(is_night);
     }
 
     float underwaterFog = mUnderwaterFog.getValue(time.getHour(), mTimeSettings, "Fog");
@@ -884,7 +885,8 @@ void WeatherManager::update(float duration, bool paused, const TimeStamp& time, 
     mRendering.configureFog(mResult.mFogDepth, underwaterFog, mResult.mDLFogFactor,
                             mResult.mDLFogOffset/100.0f, mResult.mFogColor);
     mRendering.setAmbientColour(mResult.mAmbientColor);
-    mRendering.setSunColour(mResult.mSunColor, mResult.mSunColor * mResult.mGlareView * glareFade);
+    mRendering.setSunColour(mResult.mSunColor, mResult.mSunColor * mResult.mGlareView * glareFade,
+        mResult.mGlareView * glareFade);
 
     mRendering.getSkyManager()->setWeather(mResult);
 

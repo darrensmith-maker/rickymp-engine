@@ -344,6 +344,152 @@ void main()
     gl_FragColor = vec4(adapted, adapted, adapted, 1.0);
 }
 )GLSL";
+
+    // OpenMW 0.51's post-processing API revision (OPENMW_POSTPROCESSING_API_REVISION in its CMakeLists.txt).
+    // Effects branch on it (Rafael's SMAA and wetworld check for 5).
+    constexpr int kPostProcessingApiRevision = 5;
+
+    // Everything that follows the #defines in OpenMW 0.51's pass header (components/fx/pass.cpp), in its
+    // GLSL 1.20 form. The "omw" fields have 0.51's names and types (components/fx/stateupdater.hpp) and are set
+    // in PostProcessor::createStateUniforms / updateDynamicUniforms and by RenderingManager. Point lights: 40, as
+    // 0.51's SceneUtil::PPLightBuffer::sMaxPPLights (three vec4 each); none are passed yet, so the count is 0.
+    const char* kPassHeader = R"GLSL(
+#define omw_In varying
+#define omw_Out varying
+#define omw_Position gl_Position
+#define omw_Vertex gl_Vertex
+#define omw_FragColor gl_FragColor
+#define omw_Texture1D texture1D
+#define omw_Texture2D texture2D
+#define omw_Texture3D texture3D
+#define omw_Texture2DArray texture2DArray
+
+uniform sampler2D omw_SamplerLastShader;
+uniform sampler2D omw_SamplerLastPass;
+uniform sampler2D omw_SamplerDepth;
+uniform sampler2D omw_SamplerNormals;
+uniform sampler2D omw_SamplerDistortion;
+uniform sampler2D omw_EyeAdaptation;
+
+uniform vec4 omw_PointLights[120];
+uniform int omw_PointLightsCount;
+
+struct _omw_data
+{
+    mat4 projectionMatrix;
+    mat4 invProjectionMatrix;
+    mat4 viewMatrix;
+    mat4 prevViewMatrix;
+    mat4 invViewMatrix;
+    vec4 eyePos;
+    vec4 eyeVec;
+    vec4 ambientColor;
+    vec4 skyColor;
+    vec4 fogColor;
+    vec4 sunColor;
+    vec4 sunPos;
+    vec4 sunVec;
+    vec2 resolution;
+    vec2 rcpResolution;
+    float fogNear;
+    float fogFar;
+    float near;
+    float far;
+    float fov;
+    float gameHour;
+    float sunVis;
+    float waterHeight;
+    bool isWaterEnabled;
+    float simulationTime;
+    float deltaSimulationTime;
+    int frameNumber;
+    float windSpeed;
+    float weatherTransition;
+    int weatherID;
+    int nextWeatherID;
+    bool isUnderwater;
+    bool isInterior;
+};
+uniform _omw_data omw;
+
+mat4 omw_ProjectionMatrix() { return omw.projectionMatrix; }
+mat4 omw_InvProjectionMatrix() { return omw.invProjectionMatrix; }
+
+int omw_GetPointLightCount() { return omw_PointLightsCount; }
+vec3 omw_GetPointLightWorldPos(int index) { return omw_PointLights[index * 3].xyz; }
+vec3 omw_GetPointLightDiffuse(int index) { return omw_PointLights[index * 3 + 1].xyz; }
+vec3 omw_GetPointLightAttenuation(int index) { return omw_PointLights[index * 3 + 2].xyz; }
+float omw_GetPointLightRadius(int index) { return omw_PointLights[index * 3 + 2].w; }
+
+float omw_GetDepth(vec2 uv) { return texture2D(omw_SamplerDepth, uv).r; }
+vec4 omw_GetDistortion(vec2 uv) { return texture2D(omw_SamplerDistortion, uv); }
+vec4 omw_GetLastShader(vec2 uv) { return texture2D(omw_SamplerLastShader, uv); }
+vec4 omw_GetLastPass(vec2 uv) { return texture2D(omw_SamplerLastPass, uv); }
+
+vec3 _omw_GetViewPosFromUV(vec2 uv)
+{
+    vec4 viewPos = omw.invProjectionMatrix * vec4(uv * 2.0 - 1.0, omw_GetDepth(uv) * 2.0 - 1.0, 1.0);
+    return viewPos.xyz / viewPos.w;
+}
+
+vec3 omw_GetNormals(vec2 uv)
+{
+#if OMW_NORMALS
+    // View-space normals rebuilt from depth (the scene has no normals buffer yet): of the two neighbours on
+    // each axis, use the one nearer in depth so silhouette edges do not smear.
+    vec2 texel = omw.rcpResolution;
+    vec3 c = _omw_GetViewPosFromUV(uv);
+    vec3 xr = _omw_GetViewPosFromUV(clamp(uv + vec2(texel.x, 0.0), vec2(0.0), vec2(1.0)));
+    vec3 xl = _omw_GetViewPosFromUV(clamp(uv - vec2(texel.x, 0.0), vec2(0.0), vec2(1.0)));
+    vec3 yu = _omw_GetViewPosFromUV(clamp(uv + vec2(0.0, texel.y), vec2(0.0), vec2(1.0)));
+    vec3 yd = _omw_GetViewPosFromUV(clamp(uv - vec2(0.0, texel.y), vec2(0.0), vec2(1.0)));
+    vec3 dx = (abs(xr.z - c.z) < abs(c.z - xl.z)) ? (xr - c) : (c - xl);
+    vec3 dy = (abs(yu.z - c.z) < abs(c.z - yd.z)) ? (yu - c) : (c - yd);
+    return normalize(cross(dx, dy));
+#else
+    return vec3(0.0, 0.0, 1.0);
+#endif
+}
+
+vec3 omw_GetNormalsWorldSpace(vec2 uv) { return (vec4(omw_GetNormals(uv), 0.0) * omw.viewMatrix).rgb; }
+
+vec3 omw_GetWorldPosFromUV(vec2 uv)
+{
+    float flippedDepth = omw_GetDepth(uv) * 2.0 - 1.0;
+    vec4 clipSpace = vec4(uv * 2.0 - 1.0, flippedDepth, 1.0);
+    vec4 worldSpace = omw.invViewMatrix * (omw.invProjectionMatrix * clipSpace);
+    return worldSpace.xyz / worldSpace.w;
+}
+
+float omw_GetLinearDepth(vec2 uv)
+{
+    float depth = omw_GetDepth(uv) * 2.0 - 1.0;
+    return 2.0 * omw.near * omw.far / (omw.far + omw.near - depth * (omw.far - omw.near));
+}
+
+float omw_EstimateFogCoverageFromUV(vec2 uv)
+{
+#if OMW_RADIAL_FOG
+    float dist = length(omw_GetWorldPosFromUV(uv) - omw.eyePos.xyz);
+#else
+    float dist = omw_GetLinearDepth(uv);
+#endif
+#if OMW_EXPONENTIAL_FOG
+    return 1.0 - exp(-2.0 * max(0.0, dist - omw.fogNear / 2.0) / (omw.fogFar - omw.fogNear / 2.0));
+#else
+    return clamp((dist - omw.fogNear) / (omw.fogFar - omw.fogNear), 0.0, 1.0);
+#endif
+}
+
+float omw_GetEyeAdaptation()
+{
+#if OMW_HDR
+    return texture2D(omw_EyeAdaptation, vec2(0.5, 0.5)).r;
+#else
+    return 1.0;
+#endif
+}
+)GLSL";
 }
 
 namespace MWRender
@@ -368,15 +514,6 @@ namespace MWRender
         osg::ref_ptr<osg::Camera> mCamera;
         osg::ref_ptr<osg::StateSet> mState;
         std::unordered_map<std::string, osg::ref_ptr<osg::Uniform>> mEffectUniforms;
-        osg::ref_ptr<osg::Uniform> mResolutionUniform;
-        osg::ref_ptr<osg::Uniform> mSimulationTimeUniform;
-        osg::ref_ptr<osg::Uniform> mNearUniform;
-        osg::ref_ptr<osg::Uniform> mFarUniform;
-        osg::ref_ptr<osg::Uniform> mInvProjectionScaleUniform;
-        osg::ref_ptr<osg::Uniform> mEyePosUniform;
-        osg::ref_ptr<osg::Uniform> mViewRightUniform;
-        osg::ref_ptr<osg::Uniform> mViewUpUniform;
-        osg::ref_ptr<osg::Uniform> mViewForwardUniform;
     };
 
     PostProcessor::PostProcessor(osg::Camera* mainCamera, osg::Group* rootNode, Resource::ResourceSystem* resourceSystem)
@@ -412,6 +549,7 @@ namespace MWRender
 
         sActiveProcessor.store(this, std::memory_order_release);
 
+        createStateUniforms();
         discoverEffects();
         reloadSettings();
         mReady = true;
@@ -741,11 +879,12 @@ namespace MWRender
                 pass->mState->setTextureAttributeAndModes(2, mDepthTexture, osg::StateAttribute::ON);
                 pass->mState->setTextureAttributeAndModes(3, mEyeAdaptTextureA, osg::StateAttribute::ON);
                 pass->mState->setTextureAttributeAndModes(4, mDistortionTexture, osg::StateAttribute::ON);
-                pass->mState->addUniform(new osg::Uniform("omw_LastShader", 0));
-                pass->mState->addUniform(new osg::Uniform("omw_LastPass", 1));
-                pass->mState->addUniform(new osg::Uniform("omw_Depth", 2));
+                // OpenMW 0.51 sampler names (components/fx/pass.cpp there)
+                pass->mState->addUniform(new osg::Uniform("omw_SamplerLastShader", 0));
+                pass->mState->addUniform(new osg::Uniform("omw_SamplerLastPass", 1));
+                pass->mState->addUniform(new osg::Uniform("omw_SamplerDepth", 2));
                 pass->mState->addUniform(new osg::Uniform("omw_EyeAdaptation", 3));
-                pass->mState->addUniform(new osg::Uniform("omw_Distortion", 4));
+                pass->mState->addUniform(new osg::Uniform("omw_SamplerDistortion", 4));
 
                 int unit = 5;
                 for (const std::string& input : spec.mInputs)
@@ -771,25 +910,9 @@ namespace MWRender
                     }
                 }
 
-                pass->mResolutionUniform = new osg::Uniform("omw.resolution", osg::Vec2f(1.f, 1.f));
-                pass->mSimulationTimeUniform = new osg::Uniform("omw.simulationTime", 0.f);
-                pass->mNearUniform = new osg::Uniform("omw.near", mNear);
-                pass->mFarUniform = new osg::Uniform("omw.far", mFar);
-                pass->mInvProjectionScaleUniform
-                    = new osg::Uniform("omw.invProjectionScale", osg::Vec2f(1.f, 1.f));
-                pass->mEyePosUniform = new osg::Uniform("omw.eyePos", osg::Vec3f(0.f, 0.f, 0.f));
-                pass->mViewRightUniform = new osg::Uniform("omw.viewRight", osg::Vec3f(1.f, 0.f, 0.f));
-                pass->mViewUpUniform = new osg::Uniform("omw.viewUp", osg::Vec3f(0.f, 1.f, 0.f));
-                pass->mViewForwardUniform = new osg::Uniform("omw.viewForward", osg::Vec3f(0.f, 0.f, 1.f));
-                pass->mState->addUniform(pass->mResolutionUniform);
-                pass->mState->addUniform(pass->mSimulationTimeUniform);
-                pass->mState->addUniform(pass->mNearUniform);
-                pass->mState->addUniform(pass->mFarUniform);
-                pass->mState->addUniform(pass->mInvProjectionScaleUniform);
-                pass->mState->addUniform(pass->mEyePosUniform);
-                pass->mState->addUniform(pass->mViewRightUniform);
-                pass->mState->addUniform(pass->mViewUpUniform);
-                pass->mState->addUniform(pass->mViewForwardUniform);
+                // The shared "omw" state block and point lights: one set of uniforms for every pass
+                for (const auto& entry : mStateUniforms)
+                    pass->mState->addUniform(entry.second);
 
                 pass->mCamera->addChild(geode);
                 pass->mCamera->setNodeMask(0u);
@@ -1071,50 +1194,24 @@ namespace MWRender
         const std::vector<std::string>& sampledTargets)
     {
         std::ostringstream source;
+        // The header every pass gets, following OpenMW 0.51 (components/fx/pass.cpp and stateupdater.hpp there):
+        // the same defines, macros, sampler names, "omw" fields and helper functions, so effects written for
+        // OpenMW 0.49+ (post-processing API revision 5) compile unchanged. GLSL 1.20 mapping; standard depth
+        // (no reverse-Z); normals are rebuilt from depth until the scene writes a normals buffer.
         source << "#version 120\n";
-        source << "#define OMW_NORMALS " << (technique.wantsNormals() ? 1 : 0) << "\n";
+        source << "#define OMW_API_VERSION " << kPostProcessingApiRevision << "\n";
+        source << "#define OMW_REVERSE_Z 0\n";
+        source << "#define OMW_RADIAL_FOG " << (Settings::Manager::getBool("radial fog", "Shaders") ? 1 : 0) << "\n";
+        source << "#define OMW_EXPONENTIAL_FOG 0\n";
         source << "#define OMW_HDR " << (technique.wantsHDR() ? 1 : 0) << "\n";
-        source << "#define omw_In varying\n";
-        source << "#define omw_FragColor gl_FragColor\n";
-        source << "#define omw_Texture2D texture2D\n";
-        source << "uniform sampler2D omw_LastShader;\n";
-        source << "uniform sampler2D omw_LastPass;\n";
-        source << "uniform sampler2D omw_Depth;\n";
-        source << "uniform sampler2D omw_EyeAdaptation;\n";
-        source << "uniform sampler2D omw_Distortion;\n";
+        source << "#define OMW_NORMALS " << (technique.wantsNormals() ? 1 : 0) << "\n";
+        source << "#define OMW_USE_BINDINGS 0\n";
+        source << "#define OMW_MULTIVIEW 0\n";
+        source << kPassHeader;
         for (const std::string& target : sampledTargets)
             source << "uniform sampler2D " << target << ";\n";
         for (const Fx::UniformSpec& uniform : technique.uniforms())
             source << uniform.glslDeclaration() << "\n";
-        source << "struct OMW_State { vec2 resolution; float simulationTime; float near; float far; "
-                  "vec2 invProjectionScale; vec3 eyePos; vec3 viewRight; vec3 viewUp; vec3 viewForward; };\n";
-        source << "uniform OMW_State omw;\n";
-        source << "vec4 omw_GetLastShader(vec2 uv) { return texture2D(omw_LastShader, uv); }\n";
-        source << "vec4 omw_GetLastPass(vec2 uv) { return texture2D(omw_LastPass, uv); }\n";
-        source << "float omw_GetDepth(vec2 uv) { return texture2D(omw_Depth, uv).r; }\n";
-        source << "float omw_GetLinearDepth(vec2 uv) { float d=omw_GetDepth(uv)*2.0-1.0; "
-                  "return (2.0*omw.near*omw.far)/max(0.0001,omw.far+omw.near-d*(omw.far-omw.near)); }\n";
-        source << "vec3 omw_GetViewPosFromUV(vec2 uv) { float dist=omw_GetLinearDepth(uv); "
-                  "vec2 ndc=uv*2.0-1.0; float z=-dist; return vec3(ndc.x*dist*omw.invProjectionScale.x, "
-                  "ndc.y*dist*omw.invProjectionScale.y, z); }\n";
-        source << "vec3 omw_GetWorldPosFromUV(vec2 uv) { vec3 p=omw_GetViewPosFromUV(uv); "
-                  "return omw.eyePos + omw.viewRight*p.x + omw.viewUp*p.y + omw.viewForward*p.z; }\n";
-        source << "vec3 omw_GetNormals(vec2 uv) {\n"
-                  "#if OMW_NORMALS\n"
-                  " vec2 t=1.0/max(omw.resolution,vec2(1.0)); vec3 c=omw_GetViewPosFromUV(uv); "
-                  "vec3 xr=omw_GetViewPosFromUV(clamp(uv+vec2(t.x,0.0),vec2(0.0),vec2(1.0))); "
-                  "vec3 xl=omw_GetViewPosFromUV(clamp(uv-vec2(t.x,0.0),vec2(0.0),vec2(1.0))); "
-                  "vec3 yu=omw_GetViewPosFromUV(clamp(uv+vec2(0.0,t.y),vec2(0.0),vec2(1.0))); "
-                  "vec3 yd=omw_GetViewPosFromUV(clamp(uv-vec2(0.0,t.y),vec2(0.0),vec2(1.0))); "
-                  "vec3 dx=(abs(xr.z-c.z)<abs(c.z-xl.z))?(xr-c):(c-xl); "
-                  "vec3 dy=(abs(yu.z-c.z)<abs(c.z-yd.z))?(yu-c):(c-yd); "
-                  "return normalize(cross(dx,dy));\n"
-                  "#else\n return vec3(0.0,0.0,1.0);\n#endif\n}\n";
-        source << "vec3 omw_GetNormalsWorldSpace(vec2 uv) { vec3 n=omw_GetNormals(uv); "
-                  "return normalize(omw.viewRight*n.x + omw.viewUp*n.y + omw.viewForward*n.z); }\n";
-        source << "vec4 omw_GetDistortion(vec2 uv) { return texture2D(omw_Distortion, uv); }\n";
-        source << "float omw_GetEyeAdaptation() {\n#if OMW_HDR\n return texture2D(omw_EyeAdaptation,vec2(0.5)).r;"
-                  "\n#else\n return 1.0;\n#endif\n}\n";
         source << "\n" << technique.sharedSource() << "\n";
         source << "#line 1\n" << passSource << "\n";
         return source.str();
@@ -1169,40 +1266,145 @@ namespace MWRender
         updateDynamicUniforms();
     }
 
+    void PostProcessor::createStateUniforms()
+    {
+        // One uniform per "omw" field (names and types as OpenMW 0.51's StateUpdater), shared by every pass.
+        // RenderingManager overwrites the world values; the defaults below are what an effect sees before then.
+        mStateUniforms.clear();
+        auto add = [this](const std::string& name, osg::Uniform* uniform) { mStateUniforms[name] = uniform; };
+        for (const char* field : { "projectionMatrix", "invProjectionMatrix", "viewMatrix", "prevViewMatrix",
+                 "invViewMatrix" })
+            add(field, new osg::Uniform((std::string("omw.") + field).c_str(), osg::Matrixf()));
+        for (const char* field : { "eyePos", "eyeVec", "ambientColor", "skyColor", "fogColor", "sunColor", "sunPos",
+                 "sunVec" })
+            add(field, new osg::Uniform((std::string("omw.") + field).c_str(), osg::Vec4f(0.f, 0.f, 0.f, 0.f)));
+        add("resolution", new osg::Uniform("omw.resolution", osg::Vec2f(1.f, 1.f)));
+        add("rcpResolution", new osg::Uniform("omw.rcpResolution", osg::Vec2f(1.f, 1.f)));
+        for (const char* field : { "fogNear", "fogFar", "near", "far", "fov", "gameHour", "sunVis", "waterHeight",
+                 "simulationTime", "deltaSimulationTime", "windSpeed", "weatherTransition" })
+            add(field, new osg::Uniform((std::string("omw.") + field).c_str(), 0.f));
+        for (const char* field : { "frameNumber", "weatherID", "nextWeatherID" })
+            add(field, new osg::Uniform((std::string("omw.") + field).c_str(), 0));
+        for (const char* field : { "isWaterEnabled", "isUnderwater", "isInterior" })
+            add(field, new osg::Uniform((std::string("omw.") + field).c_str(), false));
+        stateUniform("nextWeatherID")->set(-1);
+        stateUniform("sunVis")->set(1.f);
+
+        osg::ref_ptr<osg::Uniform> pointLights
+            = new osg::Uniform(osg::Uniform::FLOAT_VEC4, "omw_PointLights", 120);
+        for (unsigned int i = 0; i < 120; ++i)
+            pointLights->setElement(i, osg::Vec4f(0.f, 0.f, 0.f, 0.f));
+        mStateUniforms["omw_PointLights"] = pointLights;
+        mStateUniforms["omw_PointLightsCount"] = new osg::Uniform("omw_PointLightsCount", 0);
+    }
+
+    osg::Uniform* PostProcessor::stateUniform(const std::string& field) const
+    {
+        const auto it = mStateUniforms.find(field);
+        return it == mStateUniforms.end() ? nullptr : it->second.get();
+    }
+
+    void PostProcessor::setFogRange(float fogNear, float fogFar)
+    {
+        if (osg::Uniform* uniform = stateUniform("fogNear")) uniform->set(fogNear);
+        if (osg::Uniform* uniform = stateUniform("fogFar")) uniform->set(fogFar);
+    }
+
+    void PostProcessor::setFogColor(const osg::Vec4f& color)
+    {
+        if (osg::Uniform* uniform = stateUniform("fogColor")) uniform->set(color);
+    }
+
+    void PostProcessor::setAmbientColor(const osg::Vec4f& color)
+    {
+        if (osg::Uniform* uniform = stateUniform("ambientColor")) uniform->set(color);
+    }
+
+    void PostProcessor::setSkyColor(const osg::Vec4f& color)
+    {
+        if (osg::Uniform* uniform = stateUniform("skyColor")) uniform->set(color);
+    }
+
+    void PostProcessor::setSunColor(const osg::Vec4f& color, float sunVis)
+    {
+        if (osg::Uniform* uniform = stateUniform("sunColor")) uniform->set(color);
+        if (osg::Uniform* uniform = stateUniform("sunVis")) uniform->set(sunVis);
+    }
+
+    void PostProcessor::setSunPos(const osg::Vec4f& pos, bool night)
+    {
+        // as OpenMW 0.51: normalised, and below the horizon at night
+        osg::Vec4f value = pos;
+        value.normalize();
+        if (night)
+            value.z() *= -1.f;
+        if (osg::Uniform* uniform = stateUniform("sunPos")) uniform->set(value);
+    }
+
+    void PostProcessor::setSunVec(const osg::Vec4f& vec)
+    {
+        osg::Vec4f value = vec;
+        value.normalize();
+        if (osg::Uniform* uniform = stateUniform("sunVec")) uniform->set(value);
+    }
+
+    void PostProcessor::setGameHour(float hour)
+    {
+        if (osg::Uniform* uniform = stateUniform("gameHour")) uniform->set(hour);
+    }
+
+    void PostProcessor::setWeather(int weatherId, int nextWeatherId, float transition, float windSpeed)
+    {
+        if (osg::Uniform* uniform = stateUniform("weatherID")) uniform->set(weatherId);
+        if (osg::Uniform* uniform = stateUniform("nextWeatherID")) uniform->set(nextWeatherId);
+        // as OpenMW 0.51: 0 when no transition is running, otherwise how far it has come
+        if (osg::Uniform* uniform = stateUniform("weatherTransition"))
+            uniform->set(transition > 0.f ? 1.f - transition : 0.f);
+        if (osg::Uniform* uniform = stateUniform("windSpeed")) uniform->set(windSpeed);
+    }
+
+    void PostProcessor::setWaterHeight(float height)
+    {
+        if (osg::Uniform* uniform = stateUniform("waterHeight")) uniform->set(height);
+    }
+
+    void PostProcessor::setWaterEnabled(bool enabled)
+    {
+        if (osg::Uniform* uniform = stateUniform("isWaterEnabled")) uniform->set(enabled);
+    }
+
     void PostProcessor::updateDynamicUniforms()
     {
         const osg::Vec2f resolution(
             static_cast<float>(std::max(1, mWidth)), static_cast<float>(std::max(1, mHeight)));
+        stateUniform("resolution")->set(resolution);
+        stateUniform("rcpResolution")->set(osg::Vec2f(1.f / resolution.x(), 1.f / resolution.y()));
+        stateUniform("near")->set(mNear);
+        stateUniform("far")->set(mFar);
+        stateUniform("fov")->set(mFov);
+        stateUniform("simulationTime")->set(mSimulationTime);
+        stateUniform("deltaSimulationTime")->set(mDeltaTime);
+        stateUniform("frameNumber")->set(mFrameNumber);
+        stateUniform("isInterior")->set(mInterior);
+        stateUniform("isUnderwater")->set(mUnderwater);
 
-        osg::Vec3f eyePos(0.f, 0.f, 0.f);
-        osg::Vec3f viewRight(1.f, 0.f, 0.f);
-        osg::Vec3f viewUp(0.f, 1.f, 0.f);
-        osg::Vec3f viewForward(0.f, 0.f, 1.f);
         if (mMainCamera.valid())
         {
-            const osg::Matrixd invView = mMainCamera->getInverseViewMatrix();
-            const osg::Vec3d eye = invView.getTrans();
-            eyePos.set(static_cast<float>(eye.x()), static_cast<float>(eye.y()), static_cast<float>(eye.z()));
-            viewRight.set(static_cast<float>(invView(0, 0)), static_cast<float>(invView(0, 1)),
-                static_cast<float>(invView(0, 2)));
-            viewUp.set(static_cast<float>(invView(1, 0)), static_cast<float>(invView(1, 1)),
-                static_cast<float>(invView(1, 2)));
-            viewForward.set(static_cast<float>(invView(2, 0)), static_cast<float>(invView(2, 1)),
-                static_cast<float>(invView(2, 2)));
-        }
+            const osg::Matrixf projection(mMainCamera->getProjectionMatrix());
+            stateUniform("projectionMatrix")->set(projection);
+            stateUniform("invProjectionMatrix")->set(osg::Matrixf::inverse(projection));
+            stateUniform("viewMatrix")->set(mViewMatrix);
+            stateUniform("invViewMatrix")->set(osg::Matrixf::inverse(mViewMatrix));
+            stateUniform("prevViewMatrix")->set(mPrevViewMatrix);
 
-        const osg::Vec2f invProjectionScale(mInvProjectionScaleX, mInvProjectionScaleY);
-        for (const std::unique_ptr<RuntimePass>& pass : mRuntimePasses)
-        {
-            if (pass->mResolutionUniform) pass->mResolutionUniform->set(resolution);
-            if (pass->mSimulationTimeUniform) pass->mSimulationTimeUniform->set(mSimulationTime);
-            if (pass->mNearUniform) pass->mNearUniform->set(mNear);
-            if (pass->mFarUniform) pass->mFarUniform->set(mFar);
-            if (pass->mInvProjectionScaleUniform) pass->mInvProjectionScaleUniform->set(invProjectionScale);
-            if (pass->mEyePosUniform) pass->mEyePosUniform->set(eyePos);
-            if (pass->mViewRightUniform) pass->mViewRightUniform->set(viewRight);
-            if (pass->mViewUpUniform) pass->mViewUpUniform->set(viewUp);
-            if (pass->mViewForwardUniform) pass->mViewForwardUniform->set(viewForward);
+            // eye position and look direction in world space (OpenMW 0.51 uses the cull visitor's eye point and
+            // local look vector, which are the same for the main camera)
+            osg::Vec3d eye, center, up;
+            mMainCamera->getViewMatrixAsLookAt(eye, center, up);
+            osg::Vec3f look(center - eye);
+            look.normalize();
+            stateUniform("eyePos")->set(osg::Vec4f(osg::Vec3f(eye), 0.f));
+            stateUniform("eyeVec")->set(osg::Vec4f(look, 0.f));
         }
 
         if (mEyeAdaptDeltaUniform)
@@ -1333,14 +1535,14 @@ namespace MWRender
             {
                 mNear = static_cast<float>(std::max(0.001, zNear));
                 mFar = static_cast<float>(std::max(zNear + 0.001, zFar));
+                mFov = static_cast<float>(fovy);
             }
 
-            const osg::Matrixd& projection = mMainCamera->getProjectionMatrix();
-            const double xScale = projection(0, 0);
-            const double yScale = projection(1, 1);
-            mInvProjectionScaleX = static_cast<float>(std::abs(xScale) > 1e-8 ? 1.0 / xScale : 1.0);
-            mInvProjectionScaleY = static_cast<float>(std::abs(yScale) > 1e-8 ? 1.0 / yScale : 1.0);
+            // omw.prevViewMatrix is last frame's view, as OpenMW 0.51 keeps it (pingpongcull.cpp there)
+            mPrevViewMatrix = mFrameNumber == 0 ? osg::Matrixf(mMainCamera->getViewMatrix()) : mViewMatrix;
+            mViewMatrix = osg::Matrixf(mMainCamera->getViewMatrix());
         }
+        ++mFrameNumber;
 
         updateDynamicUniforms();
         applyPassVisibility();

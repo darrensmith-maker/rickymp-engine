@@ -317,6 +317,10 @@ namespace MWWorld
 
         unsigned int getWeatherID() const;
 
+        // RickyMP: post-processing state for .omwfx effects (omw.nextWeatherID, omw.weatherTransition).
+        int getNextWeatherID() const { return mNextWeather; }
+        float getTransitionFactor() const { return mTransitionFactor; }
+
         bool useTorches(float hour) const;
 
         void write(ESM::ESMWriter& writer, Loading::Listener& progress);

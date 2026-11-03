@@ -3902,6 +3902,16 @@ namespace MWWorld
         return mWeatherManager->getWeatherID();
     }
 
+    int World::getNextWeather() const
+    {
+        return mWeatherManager->getNextWeatherID();
+    }
+
+    float World::getWeatherTransition() const
+    {
+        return mWeatherManager->getTransitionFactor();
+    }
+
     unsigned int World::getNightDayMode() const
     {
         return mWeatherManager->getNightDayMode();

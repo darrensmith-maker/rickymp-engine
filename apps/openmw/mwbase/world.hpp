@@ -328,6 +328,12 @@ namespace MWBase
 
             virtual int getCurrentWeather() const = 0;
 
+            /// Next weather during a transition, -1 when none (RickyMP: post-processing state).
+            virtual int getNextWeather() const = 0;
+
+            /// Weather transition factor, as WeatherManager keeps it (RickyMP: post-processing state).
+            virtual float getWeatherTransition() const = 0;
+
             virtual unsigned int getNightDayMode() const = 0;
 
             virtual int getMasserPhase() const = 0;
