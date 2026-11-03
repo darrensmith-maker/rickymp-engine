@@ -14,7 +14,7 @@ config.defaultLanguage = "EN"
 config.dataPath = tes3mp.GetDataPath()
 
 -- The game mode displayed for this server in the server browser
-config.gameMode = "ArenaMP"
+config.gameMode = "RickyMP"
 
 -- Time to login, in seconds
 config.loginTime = 60
@@ -233,11 +233,11 @@ config.chatWindowInstructionsEN = color.SkyBlue .. "[Chat - " .. color.Turquoise
 -- Placeholders: {name} = player name, {count} = online count, {seconds} = login timeout.
 config.startupMessage = {
     EN = {
-        login = color.SkyBlue .. "Welcome to the server" .. color.Default .. "\nArenaMP, " ..
+        login = color.SkyBlue .. "Welcome to the server" .. color.Default .. "\nRickyMP, " ..
             color.Turquoise .. "{name}" .. color.Default .. "\n" .. color.SkyBlue .. "Players online: " ..
             color.Turquoise .. "{count}" .. color.SkyBlue .. ".\nYou have " .. color.Turquoise .. "{seconds}" ..
             color.SkyBlue .. " sec. to" .. color.Default .. " log in.\n",
-        register = color.SkyBlue .. "Welcome to the server" .. color.Default .. "\nArenaMP, " ..
+        register = color.SkyBlue .. "Welcome to the server" .. color.Default .. "\nRickyMP, " ..
             color.Turquoise .. "{name}" .. color.Default .. "\n" .. color.SkyBlue .. "Players online: " ..
             color.Turquoise .. "{count}" .. color.SkyBlue .. ".\nYou have " .. color.Turquoise .. "{seconds}" ..
             color.SkyBlue .. " sec. to" .. color.Default .. " register.\n"
