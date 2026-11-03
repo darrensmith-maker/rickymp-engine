@@ -6,6 +6,7 @@
 #include <osg/Texture2D>
 #include <osg/TexMat>
 #include <osg/BlendFunc>
+#include <osg/Capability>
 
 #include <components/shader/shadermanager.hpp>
 
@@ -175,6 +176,17 @@ namespace Terrain
     {
         std::vector<osg::ref_ptr<osg::StateSet> > passes;
 
+        // The scene writes a post-processing normals buffer (second colour target, @writeNormals). The layers
+        // blend additively, which would add their normals together: as OpenMW 0.51, blending is off for that
+        // target and only the last layer writes it (every layer covers the whole chunk with EQUAL depth).
+        bool writeNormals = false;
+        if (useShaders && shaderManager)
+        {
+            const Shader::ShaderManager::DefineMap globalDefines = shaderManager->getGlobalDefines();
+            const auto define = globalDefines.find("writeNormals");
+            writeNormals = define != globalDefines.end() && define->second == "1";
+        }
+
         unsigned int blendmapIndex = 0;
         unsigned int passIndex = 0;
         for (std::vector<TextureLayer>::const_iterator it = layers.begin(); it != layers.end(); ++it)
@@ -186,6 +198,8 @@ namespace Terrain
             if (!blendmaps.empty())
             {
                 stateset->setMode(GL_BLEND, osg::StateAttribute::ON);
+                if (writeNormals)
+                    stateset->setAttribute(new osg::Disablei(GL_BLEND, 1));
                 stateset->setRenderBinDetails(passIndex++, "RenderBin");
                 if (!firstLayer)
                 {
@@ -232,6 +246,7 @@ namespace Terrain
                 defineMap["blendMap"] = (!blendmaps.empty()) ? "1" : "0";
                 defineMap["specularMap"] = it->mSpecular ? "1" : "0";
                 defineMap["parallax"] = (it->mNormalMap && it->mParallax) ? "1" : "0";
+                defineMap["writeNormals"] = (writeNormals && it == layers.end() - 1) ? "1" : "0";
 
                 osg::ref_ptr<osg::Shader> vertexShader = shaderManager->getShader("terrain_vertex.glsl", defineMap, osg::Shader::VERTEX);
                 osg::ref_ptr<osg::Shader> fragmentShader = shaderManager->getShader("terrain_fragment.glsl", defineMap, osg::Shader::FRAGMENT);
