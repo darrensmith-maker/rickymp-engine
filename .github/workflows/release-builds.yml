@@ -197,6 +197,12 @@ jobs:
           test -n "${INCLUDE:-}"
           test -n "${LIB:-}"
 
+          # Linker maps (every function's address) so crash dumps can be read without
+          # a debugger. /MAP changes nothing in the code; removing the two programs
+          # makes Ninja link them again with their maps.
+          export LINK=/MAP
+          rm -f MSVC2022_64_Ninja/Release/tes3mp.exe MSVC2022_64_Ninja/Release/tes3mp-server.exe
+
           # Continue independent translation units after the first compiler error,
           # so one CI run reports several actionable failures.
           cmake --build MSVC2022_64_Ninja --config Release --parallel 2 -- -k 20
@@ -247,6 +253,7 @@ jobs:
           ccache --show-stats > actions-artifacts/windows-x64/ccache-stats.txt 2>&1 || true
           find MSVC2022_64_Ninja -maxdepth 3 -type f 2>/dev/null | sort \
             > actions-artifacts/windows-x64/build-files.txt || true
+          find MSVC2022_64_Ninja . -maxdepth 3 -name 'tes3mp*.map' -exec cp {} actions-artifacts/windows-x64/ \; 2>/dev/null
           printf 'workflow=%s\nrun_id=%s\nref=%s\ncommit=%s\nrunner_arch=%s\nrunner_os=%s\n' \
             "$GITHUB_WORKFLOW" "$GITHUB_RUN_ID" "$GITHUB_REF" "$GITHUB_SHA" "$RUNNER_ARCH" "$RUNNER_OS" \
             > actions-artifacts/windows-x64/BUILD_INFO.txt
