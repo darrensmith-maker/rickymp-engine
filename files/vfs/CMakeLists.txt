@@ -54,3 +54,10 @@ file(REMOVE_RECURSE "${OPENMW_MYGUI_FILES_ROOT}/resources/vfs/meshes/Interaction
 foreach (f ${BUILTIN_VFS_FILES})
     copy_resource_file("${CMAKE_CURRENT_SOURCE_DIR}/${f}" "${OPENMW_MYGUI_FILES_ROOT}" "resources/vfs/${f}")
 endforeach()
+
+# OpenMW 0.51's built-in effects. The post-processor finds effects in the VFS (shaders/*.omwfx), so they must be
+# under resources/vfs; files/shaders only puts them in resources/shaders, where no effect was ever found.
+# (internal_distortion stays out until it has been tested in this engine.)
+foreach (f adjustments.omwfx bloomlinear.omwfx debug.omwfx)
+    copy_resource_file("${CMAKE_CURRENT_SOURCE_DIR}/../shaders/${f}" "${OPENMW_MYGUI_FILES_ROOT}" "resources/vfs/shaders/${f}")
+endforeach()
