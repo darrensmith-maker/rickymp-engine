@@ -586,9 +586,10 @@ vec3 _omw_GetViewPosFromUV(vec2 uv)
 
 vec3 omw_GetNormals(vec2 uv)
 {
-#if OMW_NORMALS
     // View-space normals rebuilt from depth (the scene has no normals buffer yet): of the two neighbours on
-    // each axis, use the one nearer in depth so silhouette edges do not smear.
+    // each axis, use the one nearer in depth so silhouette edges do not smear. Every effect gets them, as in
+    // OpenMW 0.51, where omw_GetNormals always reads the normals buffer whether or not that effect set
+    // pass_normals (AdvancedDebugger does not, and validated a flat placeholder before).
     vec2 texel = omw.rcpResolution;
     vec3 c = _omw_GetViewPosFromUV(uv);
     vec3 xr = _omw_GetViewPosFromUV(clamp(uv + vec2(texel.x, 0.0), vec2(0.0), vec2(1.0)));
@@ -598,9 +599,6 @@ vec3 omw_GetNormals(vec2 uv)
     vec3 dx = (abs(xr.z - c.z) < abs(c.z - xl.z)) ? (xr - c) : (c - xl);
     vec3 dy = (abs(yu.z - c.z) < abs(c.z - yd.z)) ? (yu - c) : (c - yd);
     return normalize(cross(dx, dy));
-#else
-    return vec3(0.0, 0.0, 1.0);
-#endif
 }
 
 vec3 omw_GetNormalsWorldSpace(vec2 uv) { return (vec4(omw_GetNormals(uv), 0.0) * omw.viewMatrix).rgb; }
