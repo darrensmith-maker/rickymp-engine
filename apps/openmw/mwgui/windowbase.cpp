@@ -81,6 +81,14 @@ WindowModal::WindowModal(const std::string& parLayout)
 {
 }
 
+WindowModal::~WindowModal()
+{
+    // A modal deleted while still in the modal stack (never closed, or listed twice) would be called by the window
+    // manager on a later frame. That stopped the client after character creation; see WindowManager::forgetModal.
+    if (MWBase::WindowManager* windowManager = MWBase::Environment::get().getWindowManager())
+        windowManager->forgetModal(this);
+}
+
 void WindowModal::onOpen()
 {
     MWBase::Environment::get().getWindowManager()->addCurrentModal(this); //Set so we can escape it if needed

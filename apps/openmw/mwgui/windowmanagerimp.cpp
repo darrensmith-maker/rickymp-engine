@@ -1025,7 +1025,9 @@ namespace MWGui
         for (auto modalIterator = mCurrentModals.begin(); modalIterator != mCurrentModals.end();) {
             if ((*modalIterator)->mMainWidget == 0)
             {
-                mCurrentModals.erase(modalIterator);
+                // RickyMP: continue from the element after the erased one (the old iterator is invalid, and past
+                // the end when the last modal was erased)
+                modalIterator = mCurrentModals.erase(modalIterator);
             }
             else
             {
@@ -2250,7 +2252,13 @@ namespace MWGui
 
     void WindowManager::addCurrentModal(WindowModal *input)
     {
-        if (mCurrentModals.empty())
+        // A modal shown again while it is open (setVisible(true) twice, as the multiplayer GUI does for its login and
+        // input boxes) moves to the top instead of being listed twice. Closing it removes one entry, and a second
+        // one was left pointing at the window after it was deleted.
+        const auto listed = std::find(mCurrentModals.begin(), mCurrentModals.end(), input);
+        if (listed != mCurrentModals.end())
+            mCurrentModals.erase(listed);
+        else if (mCurrentModals.empty())
             mKeyboardNavigation->saveFocus(getMode());
 
         mCurrentModals.push_back(input);
@@ -2285,6 +2293,19 @@ namespace MWGui
         }
         else
             mKeyboardNavigation->setModalWindow(mCurrentModals.back()->mMainWidget);
+    }
+
+    void WindowManager::forgetModal(WindowModal* input)
+    {
+        // Called from ~WindowModal. A modal closed the normal way is no longer listed and nothing happens.
+        const auto end = std::remove(mCurrentModals.begin(), mCurrentModals.end(), input);
+        if (end == mCurrentModals.end())
+            return;
+        mCurrentModals.erase(end, mCurrentModals.end());
+
+        if (!mKeyboardNavigation)   // already gone while the window manager shuts down
+            return;
+        mKeyboardNavigation->setModalWindow(mCurrentModals.empty() ? nullptr : mCurrentModals.back()->mMainWidget);
     }
 
     void WindowManager::onVideoKeyPressed(MyGUI::Widget *_sender, MyGUI::KeyCode _key, MyGUI::Char _char)

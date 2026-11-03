@@ -454,6 +454,8 @@ namespace MWGui
         \param input Pointer to the current modal, to ensure proper modal is removed **/
     void removeCurrentModal(WindowModal* input) override;
 
+    void forgetModal(WindowModal* input) override;
+
     void pinWindow (MWGui::GuiWindow window) override;
     void toggleMaximized(Layout *layout) override;
 

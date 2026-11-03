@@ -61,6 +61,7 @@ namespace MWGui
     {
     public:
         WindowModal(const std::string& parLayout);
+        ~WindowModal() override;
         void onOpen() override;
         void onClose() override;
         bool exit() override {return true;}

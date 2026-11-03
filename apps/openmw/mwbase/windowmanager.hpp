@@ -418,6 +418,9 @@ namespace MWBase
                 \param input Pointer to the current modal, to ensure proper modal is removed **/
             virtual void removeCurrentModal(MWGui::WindowModal* input) = 0;
 
+            /// A modal window is being deleted: forget it wherever it is in the modal stack
+            virtual void forgetModal(MWGui::WindowModal* input) = 0;
+
             virtual void pinWindow (MWGui::GuiWindow window) = 0;
             virtual void toggleMaximized(MWGui::Layout *layout) = 0;
 
