@@ -228,6 +228,15 @@ namespace MWRender
         std::vector<std::unique_ptr<RuntimePass>> mRuntimePasses;
         std::vector<osg::ref_ptr<osg::Camera>> mPassCameras;
 
+        // Compiled effect programs and loaded effect textures outlive a chain rebuild (the chain is rebuilt when
+        // the player crosses the waterline or a door), so unchanged passes reuse them instead of compiling and
+        // uploading again. What the last few rebuilds did not use is dropped (see rebuildRuntimeChain).
+        struct CachedProgram { osg::ref_ptr<osg::Program> mProgram; unsigned int mLastUsed = 0; };
+        struct CachedTexture { osg::ref_ptr<osg::Texture> mTexture; unsigned int mLastUsed = 0; };
+        std::unordered_map<std::string, CachedProgram> mProgramCache;
+        std::unordered_map<std::string, CachedTexture> mSamplerTextureCache;
+        unsigned int mChainBuilds = 0;
+
         osg::ref_ptr<osg::Texture2D> mSceneTexture;
         osg::ref_ptr<osg::Texture2D> mDepthTexture;
         osg::ref_ptr<osg::Texture2D> mWorldDepthTexture;   // what effects sample as depth (see captureWorldDepth)

@@ -8,7 +8,7 @@
 
         <!-- ArenaMW account-login branding. Hidden for ordinary in-game server input boxes. -->
         <Widget type="ImageBox" skin="ImageBox" position="0 0 420 116" name="LoginBrand">
-            <Property key="ImageTexture" value="textures\menu_arenamw.png"/>
+            <Property key="ImageTexture" value="textures\menu_rickymp.png"/>
             <Property key="NeedMouse" value="false"/>
             <Property key="Visible" value="false"/>
             <UserString key="Hidden" value="true"/>

@@ -107,7 +107,7 @@ Launcher::MainDialog::MainDialog(QWidget *parent)
     , mServerDialog(nullptr)
     , mWatermarkLabel(nullptr)
     , mBuildManifestLoaded(false)
-    , mBuildName(QStringLiteral("ArenaMP"))
+    , mBuildName(QStringLiteral("RickyMP"))
     , mBuildServerAddress(QStringLiteral("127.0.0.1"))
     , mBuildServerPort(QStringLiteral("25565"))
     , mBuildVanillaServerCompatibility(false)
@@ -665,7 +665,7 @@ bool Launcher::MainDialog::loadBuildManifest()
 {
     mBuildManifestLoaded = false;
     mBuildManifestPath.clear();
-    mBuildName = mLauncherSettings.value(QStringLiteral("General/Build/name"), QStringLiteral("ArenaMP"));
+    mBuildName = mLauncherSettings.value(QStringLiteral("General/Build/name"), QStringLiteral("RickyMP"));
     mBuildDataPath = primaryDataDirectory();
     mBuildServerAddress = QStringLiteral("127.0.0.1");
     mBuildServerPort = QStringLiteral("25565");
@@ -721,7 +721,7 @@ bool Launcher::MainDialog::loadBuildManifest()
     }
 
     const QString effectiveBuildName = manifest.buildName.trimmed().isEmpty()
-        ? QStringLiteral("ArenaMP") : manifest.buildName.trimmed();
+        ? QStringLiteral("RickyMP") : manifest.buildName.trimmed();
     // A present build.ini always owns the enabled plug-in list, including an
     // intentionally empty one. Never merge it with launcher.cfg/openmw.cfg or
     // auto-enable other plug-ins merely because they exist in Data Files.
@@ -876,7 +876,7 @@ bool Launcher::MainDialog::writeBuildManifest()
     QString error;
     if (!manifest.write(manifestPath, &error))
     {
-        cfgError(tr("Error writing ArenaMP build manifest"),
+        cfgError(tr("Error writing RickyMP build manifest"),
             tr("<br><b>Could not write %1</b><br><br>%2").arg(manifestPath, error));
         return false;
     }

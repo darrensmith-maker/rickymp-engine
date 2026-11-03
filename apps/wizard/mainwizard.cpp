@@ -225,7 +225,7 @@ Wizard::MainWizard::MainWizard(QWidget *parent) :
     mError(false),
     mGameSettings(mCfgMgr),
     mBuildManifestLoaded(false),
-    mBuildName(QStringLiteral("ArenaMP")),
+    mBuildName(QStringLiteral("RickyMP")),
     mBuildServerAddress(QStringLiteral("127.0.0.1")),
     mBuildServerPort(QStringLiteral("25565")),
     mBuildLanguage(QStringLiteral("English")),
@@ -237,7 +237,7 @@ Wizard::MainWizard::MainWizard(QWidget *parent) :
     setWizardStyle(QWizard::ClassicStyle);
 #endif
 
-    setWindowTitle(tr("OpenMW Wizard"));
+    setWindowTitle(tr("RickyMP Wizard"));
     setWindowIcon(QIcon(QLatin1String(":/images/openmw-wizard.png")));
     setMinimumWidth(550);
 
@@ -635,7 +635,7 @@ bool Wizard::MainWizard::loadBuildManifest(const QString& dataFilesPath)
 {
     mBuildManifestLoaded = false;
     mBuildManifestPath.clear();
-    mBuildName = QStringLiteral("ArenaMP");
+    mBuildName = QStringLiteral("RickyMP");
     mBuildDataPath = QDir::cleanPath(dataFilesPath);
     mBuildLanguage = QStringLiteral("English");
     mBuildLanguageLocked = false;
@@ -665,7 +665,7 @@ bool Wizard::MainWizard::loadBuildManifest(const QString& dataFilesPath)
 
     mBuildManifestLoaded = true;
     mBuildManifestPath = manifestPath;
-    mBuildName = manifest.buildName.trimmed().isEmpty() ? QStringLiteral("ArenaMP") : manifest.buildName.trimmed();
+    mBuildName = manifest.buildName.trimmed().isEmpty() ? QStringLiteral("RickyMP") : manifest.buildName.trimmed();
     mBuildServerAddress = manifest.serverAddress.trimmed().isEmpty()
         ? QStringLiteral("127.0.0.1") : manifest.serverAddress.trimmed();
     mBuildServerPort = manifest.serverPort.trimmed().isEmpty()
@@ -748,7 +748,7 @@ bool Wizard::MainWizard::writeBuildManifest(const QString& dataFilesPath)
         readClientEndpoint(address, port);
 
     manifest.formatVersion = 1;
-    manifest.buildName = mBuildName.trimmed().isEmpty() ? QStringLiteral("ArenaMP") : mBuildName.trimmed();
+    manifest.buildName = mBuildName.trimmed().isEmpty() ? QStringLiteral("RickyMP") : mBuildName.trimmed();
     manifest.dataPath = Config::BuildManifest::portableDataPath(manifestPath, dataPath);
     if (previousManifestLoaded && previousManifest.languageSpecified)
     {
@@ -822,7 +822,7 @@ void Wizard::MainWizard::configureDataFiles(const QString& path)
     mBuildManifestLoaded = false;
     mBuildManifestPath.clear();
     mBuildDataPath = resolvedPath;
-    mBuildName = QStringLiteral("ArenaMP");
+    mBuildName = QStringLiteral("RickyMP");
     mBuildLanguageLocked = false;
 
     // No build.ini exists yet: apply only the known recommended order. Do not
@@ -1101,7 +1101,7 @@ void Wizard::MainWizard::writeSettings()
     file.close();
 
     mLauncherSettings.setValue(QStringLiteral("General/Build/name"),
-        mBuildName.trimmed().isEmpty() ? QStringLiteral("ArenaMP") : mBuildName.trimmed());
+        mBuildName.trimmed().isEmpty() ? QStringLiteral("RickyMP") : mBuildName.trimmed());
     // A completed Wizard run is authoritative. Without this flag the next
     // Launcher process can start the Wizard again despite valid configuration.
     mLauncherSettings.remove(QStringLiteral("General/firstrun"));

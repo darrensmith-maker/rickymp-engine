@@ -2,7 +2,7 @@
 <qresource prefix="images">
     <file alias="clear.png">images/clear.png</file>
     <file alias="down.png">images/down.png</file>
-    <file alias="openmw.png">images/openmw.png</file>
+    <file alias="openmw.png">images/rickymp.png</file>
     <file alias="openmw-plugin.png">images/openmw-plugin.png</file>
     <file alias="openmw-header.png">images/openmw-header.png</file>
     <file alias="preferences.png">images/preferences.png</file>

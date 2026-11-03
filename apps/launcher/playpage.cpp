@@ -244,13 +244,13 @@ Launcher::PlayPage::PlayPage(QWidget *parent)
 
 void Launcher::PlayPage::setBuildName(const QString& name)
 {
-    buildNameEdit->setText(name.trimmed().isEmpty() ? QStringLiteral("ArenaMP") : name.trimmed());
+    buildNameEdit->setText(name.trimmed().isEmpty() ? QStringLiteral("RickyMP") : name.trimmed());
 }
 
 QString Launcher::PlayPage::buildName() const
 {
     const QString name = buildNameEdit->text().trimmed();
-    return name.isEmpty() ? QStringLiteral("ArenaMP") : name;
+    return name.isEmpty() ? QStringLiteral("RickyMP") : name;
 }
 
 void Launcher::PlayPage::setServerAddress(const QString& addr)
@@ -887,7 +887,7 @@ void Launcher::PlayPage::slotEnforceRequiredToggled(bool enabled)
 void Launcher::PlayPage::applyServerModePreset(int index)
 {
     const bool coop = index == 0;
-    gameModeEdit->setText(coop ? QStringLiteral("ArenaMP CO-OP") : QStringLiteral("ArenaMP MMO"));
+    gameModeEdit->setText(coop ? QStringLiteral("RickyMP CO-OP") : QStringLiteral("RickyMP MMO"));
     shareJournalCheckBox->setChecked(coop);
     shareFactionRanksCheckBox->setChecked(coop);
     shareFactionExpulsionCheckBox->setChecked(coop);

@@ -288,7 +288,7 @@ bool Launcher::ServerDialog::startServer()
     QString preparationError;
     if (!preparePortableServer(&preparationError))
     {
-        QMessageBox::warning(this, tr("Error preparing ArenaMP server"), preparationError);
+        QMessageBox::warning(this, tr("Error preparing RickyMP server"), preparationError);
         appendStatusLine(tr("Server preparation failed: %1").arg(preparationError));
         mStopButton->setEnabled(false);
         return false;
@@ -710,7 +710,7 @@ bool Launcher::ServerDialog::preparePortableServer(QString* errorMessage) const
         || !QFileInfo::exists(bundledVersion))
     {
         if (errorMessage)
-            *errorMessage = tr("The bundled ArenaMP server core is incomplete: %1")
+            *errorMessage = tr("The bundled RickyMP server core is incomplete: %1")
                 .arg(QDir::toNativeSeparators(bundledServerPath));
         return false;
     }

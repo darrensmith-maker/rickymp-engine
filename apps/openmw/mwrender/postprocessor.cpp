@@ -13,6 +13,7 @@
 #include <array>
 #include <cctype>
 #include <cmath>
+#include <iterator>
 #include <sstream>
 #include <utility>
 
@@ -965,6 +966,7 @@ namespace MWRender
 
         if (!mReady || !mRootNode.valid())
             return;
+        ++mChainBuilds;
 
         // The donor renderer always dispatches internal_distortion before the
         // user chain. R5 mirrors that ordering while the actual distortion
@@ -1013,7 +1015,11 @@ namespace MWRender
 
             for (const Fx::SamplerSpec& spec : technique->samplers())
             {
-                osg::ref_ptr<osg::Texture> texture = createSamplerTexture(spec);
+                CachedTexture& cachedTexture = mSamplerTextureCache[effectName + "|" + spec.mName + "|" + spec.mSource];
+                if (!cachedTexture.mTexture)
+                    cachedTexture.mTexture = createSamplerTexture(spec);
+                cachedTexture.mLastUsed = mChainBuilds;
+                osg::ref_ptr<osg::Texture> texture = cachedTexture.mTexture;
                 if (texture)
                     runtimeTechnique->mSamplerTextures[spec.mName] = texture;
                 else
@@ -1079,8 +1085,12 @@ namespace MWRender
                 const std::string vertexSource = makeShaderSource(*technique, true,
                     spec.mVertexSource.empty() ? std::string(kDefaultPassVertex) : spec.mVertexSource, sampledTargets);
                 const std::string fragmentSource = makeShaderSource(*technique, false, spec.mSource, sampledTargets);
-                osg::ref_ptr<osg::Program> program
-                    = createProgram(effectName + ":" + spec.mName, vertexSource, fragmentSource);
+                // The same sources as an earlier build: the same, already compiled program
+                CachedProgram& cachedProgram = mProgramCache[vertexSource + '\n' + fragmentSource];
+                if (!cachedProgram.mProgram)
+                    cachedProgram.mProgram = createProgram(effectName + ":" + spec.mName, vertexSource, fragmentSource);
+                cachedProgram.mLastUsed = mChainBuilds;
+                osg::ref_ptr<osg::Program> program = cachedProgram.mProgram;
                 if (!program)
                 {
                     Log(Debug::Error) << "Could not create program for effect '" << effectName
@@ -1184,6 +1194,14 @@ namespace MWRender
             resizeTargets(mWidth, mHeight);
         updateDynamicUniforms();
         applyPassVisibility();
+
+        // Keep what the last few builds used (above and below water, indoors and out); drop the rest, such as
+        // programs for a static uniform value the player has since changed
+        const unsigned int keepBuilds = 4;
+        for (auto it = mProgramCache.begin(); it != mProgramCache.end();)
+            it = mChainBuilds - it->second.mLastUsed > keepBuilds ? mProgramCache.erase(it) : std::next(it);
+        for (auto it = mSamplerTextureCache.begin(); it != mSamplerTextureCache.end();)
+            it = mChainBuilds - it->second.mLastUsed > keepBuilds ? mSamplerTextureCache.erase(it) : std::next(it);
 
         Log(Debug::Info) << "OpenMW 0.52 PostProcessor R5.1: runtime chain rebuilt, effects="
                          << mRuntimeTechniques.size() << ", passes=" << mRuntimePasses.size();

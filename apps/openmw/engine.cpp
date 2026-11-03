@@ -911,7 +911,7 @@ void OMW::Engine::createWindow(Settings::Manager& settings)
 
                 Rename the window into TES3MP
             */
-            mWindow = SDL_CreateWindow("TES3MP", pos_x, pos_y, width, height, flags);
+            mWindow = SDL_CreateWindow("RickyMP", pos_x, pos_y, width, height, flags);
             /*
                 End of tes3mp change (major)
             */
@@ -993,7 +993,7 @@ void OMW::Engine::setWindowIcon()
 
         Use TES3MP's logo for the window icon
     */
-    std::string windowIcon = (mResDir / "mygui" / "tes3mp_logo.png").string();
+    std::string windowIcon = (mResDir / "mygui" / "rickymp_logo.png").string();
     /*
         End of tes3mp change (major)
     */

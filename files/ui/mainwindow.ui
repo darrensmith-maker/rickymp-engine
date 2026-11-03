@@ -23,7 +23,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>ArenaMP Launcher</string>
+   <string>RickyMP Launcher</string>
   </property>
   <property name="windowIcon">
    <iconset resource="../launcher/launcher.qrc">

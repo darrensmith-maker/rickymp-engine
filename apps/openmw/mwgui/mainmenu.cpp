@@ -40,8 +40,8 @@ namespace MWGui
         getWidget(mVersionText, "VersionText");
         getWidget(mPauseBrandText, "PauseBrandText");
         getWidget(mChatHistory, "MenuChatHistory");
-        mVersionText->setCaption(versionDescription);
-        mPauseBrandText->setCaption("ArenaMP (fork TES3MP 0.8.1)");
+        mVersionText->setCaption("RickyMP Client 1.0 by Ricky\nArenaMP R52 / TES3MP 0.8.1\n" + versionDescription);
+        mPauseBrandText->setCaption("RickyMP by Ricky");
 
         mPauseBrandText->setTextShadow(true);
         mPauseBrandText->setTextShadowColour(MyGUI::Colour::Black);

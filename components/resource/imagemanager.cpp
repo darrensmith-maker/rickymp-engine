@@ -48,6 +48,7 @@ namespace Resource
         : ResourceManager(vfs)
         , mWarningImage(createWarningImage())
         , mOptions(new osgDB::Options("dds_flip dds_dxt1_detect_rgba ignoreTga2Fields"))
+        , mOptionsNoFlip(new osgDB::Options("dds_dxt1_detect_rgba ignoreTga2Fields"))
     {
     }
 
@@ -138,7 +139,25 @@ namespace Resource
                 stream->seekg(0);
             }
 
-            osgDB::ReaderWriter::ReadResult result = reader->readImage(*stream, mOptions);
+            // OSG cannot flip a 3D DDS (it logs an Image::flipVertical error and leaves it as it is), and a volume
+            // has no up to flip anyway: as OpenMW 0.51, those are read without dds_flip. dwCaps2 sits 112 bytes
+            // into the file ("DDS " + 108 header bytes); DDSCAPS2_VOLUME is 0x200000.
+            bool noFlip = false;
+            if (reader->supportedExtensions().count("dds"))
+            {
+                unsigned char header[116];
+                stream->read((char*)header, sizeof(header));
+                if (static_cast<std::size_t>(stream->gcount()) == sizeof(header) && header[0] == 'D' && header[1] == 'D' && header[2] == 'S')
+                {
+                    const unsigned int caps2 = header[112] | (header[113] << 8) | (header[114] << 16)
+                        | (static_cast<unsigned int>(header[115]) << 24);
+                    noFlip = (caps2 & 0x200000) != 0;
+                }
+                stream->clear();
+                stream->seekg(0);
+            }
+
+            osgDB::ReaderWriter::ReadResult result = reader->readImage(*stream, noFlip ? mOptionsNoFlip : mOptions);
             if (!result.success())
             {
                 Log(Debug::Error) << "Error loading " << filename << ": " << result.message() << " code " << result.status();

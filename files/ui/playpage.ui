@@ -64,7 +64,7 @@
          <item>
           <widget class="QLineEdit" name="buildNameEdit">
            <property name="text">
-            <string>ArenaMP</string>
+            <string>RickyMP</string>
            </property>
            <property name="minimumSize">
             <size>
@@ -184,7 +184,7 @@
             <string>Connect to vanilla-build server</string>
            </property>
            <property name="toolTip">
-            <string>Use the official TES3MP 0.8.1 network identity (protocol 10, commit 68954091c5) required by older non-ArenaMP servers. Content files are not changed automatically, and local auto-start is skipped in this mode.</string>
+            <string>Use the official TES3MP 0.8.1 network identity (protocol 10, commit 68954091c5) required by standard TES3MP servers. Content files are not changed automatically, and local auto-start is skipped in this mode.</string>
            </property>
            <property name="checked">
             <bool>false</bool>
@@ -734,7 +734,7 @@
                <item>
                 <widget class="QGroupBox" name="arenaMechanicsGroupBox">
                  <property name="title">
-                  <string>ArenaMP NPC and combat mechanics</string>
+                  <string>Enhanced NPC and combat mechanics</string>
                  </property>
                  <layout class="QGridLayout" name="arenaMechanicsGridLayout">
                   <property name="horizontalSpacing"><number>16</number></property>
@@ -742,7 +742,7 @@
                   <item row="0" column="0" colspan="2">
                    <widget class="QCheckBox" name="arenaTacticalCombatCheckBox">
                     <property name="text"><string>Tactical NPC combat</string></property>
-                    <property name="toolTip"><string>Enable ArenaMP strafing, circling, retreats, dodge jumps and stuck recovery while AiCombat stays active.</string></property>
+                    <property name="toolTip"><string>Enable strafing, circling, retreats, dodge jumps and stuck recovery while AiCombat stays active.</string></property>
                    </widget>
                   </item>
                   <item row="0" column="2" colspan="2">

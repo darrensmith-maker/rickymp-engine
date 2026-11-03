@@ -240,7 +240,7 @@ jobs:
       - name: Create ZIP
         shell: pwsh
         run: |
-          $name = "ArenaMP-Windows-x64-${{ github.ref_name }}"
+          $name = "RickyMP-Windows-x64-${{ github.ref_name }}"
           Compress-Archive -Path "install\*" -DestinationPath "$name.zip" -Force
 
       - name: Collect Windows diagnostics
@@ -263,8 +263,8 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: ArenaMP-Windows-x64-${{ github.ref_name }}
-          path: ArenaMP-Windows-x64-${{ github.ref_name }}.zip
+          name: RickyMP-Windows-x64-${{ github.ref_name }}
+          path: RickyMP-Windows-x64-${{ github.ref_name }}.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
@@ -273,7 +273,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ArenaMP-Windows-x64-${{ github.ref_name }}-diagnostics
+          name: RickyMP-Windows-x64-${{ github.ref_name }}-diagnostics
           path: actions-artifacts/windows-x64/
           if-no-files-found: warn
           retention-days: 14

@@ -94,7 +94,7 @@ Config::BuildManifest::BuildManifest()
 void Config::BuildManifest::clear()
 {
     formatVersion = 1;
-    buildName = QStringLiteral("ArenaMP");
+    buildName = QStringLiteral("RickyMP");
     dataPath.clear();
     language = QStringLiteral("English");
     languageSpecified = false;
@@ -197,7 +197,7 @@ bool Config::BuildManifest::read(const QString& filePath, QString* errorMessage)
     }
 
     if (buildName.trimmed().isEmpty())
-        buildName = QStringLiteral("ArenaMP");
+        buildName = QStringLiteral("RickyMP");
     language = canonicalLanguage(language);
     if (serverAddress.trimmed().isEmpty())
         serverAddress = QStringLiteral("127.0.0.1");
@@ -228,11 +228,11 @@ bool Config::BuildManifest::write(const QString& filePath, QString* errorMessage
 
     QTextStream stream(&file);
     stream.setCodec("UTF-8");
-    stream << "# ArenaMP portable build manifest\n";
+    stream << "# RickyMP portable build manifest\n";
     stream << "# Ordered entries are applied exactly as written.\n\n";
     stream << "[Build]\n";
     stream << "format=" << (formatVersion > 0 ? formatVersion : 1) << "\n";
-    stream << "name=" << encodeValue(buildName.trimmed().isEmpty() ? QStringLiteral("ArenaMP") : buildName.trimmed()) << "\n";
+    stream << "name=" << encodeValue(buildName.trimmed().isEmpty() ? QStringLiteral("RickyMP") : buildName.trimmed()) << "\n";
     stream << "data-path=" << encodeValue(dataPath) << "\n";
     stream << "language=" << encodeValue(canonicalLanguage(language)) << "\n";
     stream << "complete=" << (complete ? "true" : "false") << "\n\n";

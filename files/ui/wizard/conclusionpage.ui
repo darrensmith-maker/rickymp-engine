@@ -14,7 +14,7 @@
    <string>WizardPage</string>
   </property>
   <property name="title">
-   <string>Completing the OpenMW Wizard</string>
+   <string>Completing the RickyMP Wizard</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
