@@ -19,6 +19,7 @@
 #include <osg/Texture2D>
 #include <osg/Geometry>
 #include <osg/BlendFunc>
+#include <osg/ColorMaski>
 #include <osg/Geode>
 #include <osg/Program>
 #include <osg/Viewport>
@@ -419,6 +420,12 @@ namespace MWRender
         globalDefines["useGPUShader4"] = "0";
         // scene shaders also write view-space normals for the post-processing effects (a second colour target)
         globalDefines["writeNormals"] = PostProcessor::sceneNormalsSupported() ? "1" : "0";
+        // Writes to that target are switched on here, at the scene root, as OpenMW 0.51 does
+        // (SceneManager::setUpNormalsRTForStateSet); the sky and alpha-blended objects switch them off below.
+        // Without it, OSG's default for an indexed colour mask restores buffer 0 only, so once the sky had masked
+        // buffer 1 nothing wrote normals for the rest of the frame (the debugger's pink).
+        if (PostProcessor::sceneNormalsSupported())
+            sceneRoot->getOrCreateStateSet()->setAttribute(new osg::ColorMaski(1, true, true, true, true));
 
         for (auto itr = lightDefines.begin(); itr != lightDefines.end(); itr++)
             globalDefines[itr->first] = itr->second;
