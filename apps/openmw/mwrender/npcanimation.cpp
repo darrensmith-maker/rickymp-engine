@@ -388,6 +388,9 @@ public:
         glClear(GL_DEPTH_BUFFER_BIT);
 
         bin->drawImplementation(renderInfo, previous);
+
+        // and the arms into that copy, so effects see them in front of the world
+        PostProcessor::addFirstPersonDepth(bin, renderInfo, previous);
     }
 
     osg::ref_ptr<osg::Depth> mDepth;

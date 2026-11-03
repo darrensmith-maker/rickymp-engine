@@ -16,6 +16,9 @@
 #include <sstream>
 #include <utility>
 
+#include <osg/ColorMask>
+#include <osg/FrameBufferObject>
+#include <osg/FrameStamp>
 #include <osg/GLExtensions>
 #include <osg/Geode>
 #include <osg/Geometry>
@@ -35,6 +38,8 @@
 #include <osg/Vec3>
 #include <osg/Vec4>
 #include <osg/Viewport>
+
+#include <osgUtil/RenderBin>
 
 namespace
 {
@@ -86,6 +91,28 @@ namespace
 
         std::string mName;
         mutable std::atomic<bool> mReported{false};
+    };
+
+    // First thing in every effect pass: make sure this frame's depth copy exists (PostProcessor::ensureWorldDepth)
+    class WorldDepthCallback : public osg::Camera::DrawCallback
+    {
+    public:
+        void operator()(osg::RenderInfo& renderInfo) const override
+        {
+            if (MWRender::PostProcessor* processor = MWRender::PostProcessor::getActiveProcessor())
+                processor->ensureWorldDepth(renderInfo);
+        }
+    };
+
+    // After the final blit, once (PostProcessor::checkOutputOnce)
+    class OutputCheckCallback : public osg::Camera::DrawCallback
+    {
+    public:
+        void operator()(osg::RenderInfo& renderInfo) const override
+        {
+            if (MWRender::PostProcessor* processor = MWRender::PostProcessor::getActiveProcessor())
+                processor->checkOutputOnce(renderInfo);
+        }
     };
 
     int getInternalFormat(const std::string& value)
@@ -588,6 +615,9 @@ namespace MWRender
 
         mSceneTexture = createSceneTexture();
         mDepthTexture = createDepthTexture();
+        mWorldDepthTexture = createDepthTexture();
+        mDepthOnlyState = new osg::StateSet;
+        mDepthOnlyState->setAttributeAndModes(new osg::ColorMask(false, false, false, false), osg::StateAttribute::ON);
         mPingTextureA = createSceneTexture();
         mPingTextureB = createSceneTexture();
         mPingTextureC = createSceneTexture();
@@ -973,14 +1003,15 @@ namespace MWRender
 
                 pass->mCamera = createCamera(order++, true);
                 pass->mCamera->attach(osg::Camera::COLOR_BUFFER0, pass->mOutput);
+                pass->mCamera->setInitialDrawCallback(new WorldDepthCallback);
                 osg::ref_ptr<osg::Geode> geode = createFullscreenPass(program, effectName + ":" + spec.mName);
                 pass->mState = geode->getOrCreateStateSet();
 
-                pass->mState->setTextureAttributeAndModes(0, effectInput, osg::StateAttribute::ON);
-                pass->mState->setTextureAttributeAndModes(1, lastPassOutput, osg::StateAttribute::ON);
-                pass->mState->setTextureAttributeAndModes(2, mDepthTexture, osg::StateAttribute::ON);
-                pass->mState->setTextureAttributeAndModes(3, mEyeAdaptTextureA, osg::StateAttribute::ON);
-                pass->mState->setTextureAttributeAndModes(4, mDistortionTexture, osg::StateAttribute::ON);
+                pass->mState->setTextureAttribute(0, effectInput);
+                pass->mState->setTextureAttribute(1, lastPassOutput);
+                pass->mState->setTextureAttribute(2, mWorldDepthTexture);
+                pass->mState->setTextureAttribute(3, mEyeAdaptTextureA);
+                pass->mState->setTextureAttribute(4, mDistortionTexture);
                 // OpenMW 0.51 sampler names (components/fx/pass.cpp there)
                 pass->mState->addUniform(new osg::Uniform("omw_SamplerLastShader", 0));
                 pass->mState->addUniform(new osg::Uniform("omw_SamplerLastPass", 1));
@@ -996,7 +1027,7 @@ namespace MWRender
                     const auto inputIt = runtimeOwner->mTargets.find(input);
                     if (inputIt == runtimeOwner->mTargets.end())
                         continue;
-                    pass->mState->setTextureAttributeAndModes(unit, inputIt->second, osg::StateAttribute::ON);
+                    pass->mState->setTextureAttribute(unit, inputIt->second);
                     pass->mState->addUniform(new osg::Uniform(input.c_str(), unit));
                     ++unit;
                 }
@@ -1004,7 +1035,7 @@ namespace MWRender
                 // The effect's own textures (sampler blocks), declared for it in the shader header
                 for (const auto& sampler : runtimeOwner->mSamplerTextures)
                 {
-                    pass->mState->setTextureAttributeAndModes(unit, sampler.second, osg::StateAttribute::ON);
+                    pass->mState->setTextureAttribute(unit, sampler.second);
                     pass->mState->addUniform(new osg::Uniform(sampler.first.c_str(), unit));
                     ++unit;
                 }
@@ -1040,6 +1071,7 @@ namespace MWRender
         // it must never hide the final blit now that the main camera owns an FBO.
         mProcessedOutput = mRuntimePasses.empty() ? mSceneTexture : previousEffectOutput;
         mFinalCamera = createCamera(order++, false);
+        mFinalCamera->setPostDrawCallback(new OutputCheckCallback);
         osg::ref_ptr<osg::Program> blitProgram = createBlitProgram();
         osg::ref_ptr<osg::Geode> finalGeode = createFullscreenPass(blitProgram, "final blit");
         mFinalState = finalGeode->getOrCreateStateSet();
@@ -1196,8 +1228,8 @@ namespace MWRender
         osg::ref_ptr<osg::Program> program = createProgram("OpenMW52_EyeAdaptation", kEyeAdaptFragment);
         osg::ref_ptr<osg::Geode> geode = createFullscreenPass(program, "eye adaptation");
         mEyeAdaptState = geode->getOrCreateStateSet();
-        mEyeAdaptState->setTextureAttributeAndModes(0, mSceneTexture, osg::StateAttribute::ON);
-        mEyeAdaptState->setTextureAttributeAndModes(1, mEyeAdaptTextureB, osg::StateAttribute::ON);
+        mEyeAdaptState->setTextureAttribute(0, mSceneTexture);
+        mEyeAdaptState->setTextureAttribute(1, mEyeAdaptTextureB);
         mEyeAdaptState->addUniform(new osg::Uniform("sceneTexture", 0));
         mEyeAdaptState->addUniform(new osg::Uniform("previousExposure", 1));
         mEyeAdaptDeltaUniform = new osg::Uniform("deltaTime", 0.f);
@@ -1213,7 +1245,7 @@ namespace MWRender
         mEyeAdaptCopyCamera->attach(osg::Camera::COLOR_BUFFER0, mEyeAdaptTextureB);
         osg::ref_ptr<osg::Geode> copyGeode = createFullscreenPass(createBlitProgram(), "eye adaptation copy");
         osg::StateSet* copyState = copyGeode->getOrCreateStateSet();
-        copyState->setTextureAttributeAndModes(0, mEyeAdaptTextureA, osg::StateAttribute::ON);
+        copyState->setTextureAttribute(0, mEyeAdaptTextureA);
         copyState->addUniform(new osg::Uniform("sourceTexture", 0));
         mEyeAdaptCopyCamera->addChild(copyGeode);
         mEyeAdaptCopyCamera->setNodeMask(0u);
@@ -1403,6 +1435,8 @@ namespace MWRender
 
         mSceneTexture->setTextureSize(mWidth, mHeight);
         mDepthTexture->setTextureSize(mWidth, mHeight);
+        mWorldDepthTexture->setTextureSize(mWidth, mHeight);
+        createCopyFbos();
         mPingTextureA->setTextureSize(mWidth, mHeight);
         mPingTextureB->setTextureSize(mWidth, mHeight);
         mPingTextureC->setTextureSize(mWidth, mHeight);
@@ -1675,18 +1709,112 @@ namespace MWRender
         osg::Texture2D* source = (mEnabled && !mRuntimePasses.empty() && mProcessedOutput)
             ? mProcessedOutput.get() : mSceneTexture.get();
         if (source)
-            mFinalState->setTextureAttributeAndModes(0, source, osg::StateAttribute::ON);
+            mFinalState->setTextureAttribute(0, source);
+    }
+
+    void PostProcessor::createCopyFbos()
+    {
+        // Framebuffers for copying depth and for the one startup check; a new size needs new attachments
+        mSceneDepthFbo = new osg::FrameBufferObject;
+        mSceneDepthFbo->setAttachment(osg::Camera::DEPTH_BUFFER, osg::FrameBufferAttachment(mDepthTexture.get()));
+        mWorldDepthFbo = new osg::FrameBufferObject;
+        mWorldDepthFbo->setAttachment(osg::Camera::DEPTH_BUFFER, osg::FrameBufferAttachment(mWorldDepthTexture.get()));
+        mSceneColorFbo = new osg::FrameBufferObject;
+        mSceneColorFbo->setAttachment(osg::Camera::COLOR_BUFFER0, osg::FrameBufferAttachment(mSceneTexture.get()));
+    }
+
+    void PostProcessor::copySceneDepth(osg::State& state)
+    {
+        const osg::ref_ptr<osg::FrameBufferObject> from = mSceneDepthFbo;
+        const osg::ref_ptr<osg::FrameBufferObject> to = mWorldDepthFbo;
+        osg::GLExtensions* ext = state.get<osg::GLExtensions>();
+        if (!from || !to || !ext || !ext->isFrameBufferObjectSupported || !ext->glBlitFramebuffer)
+            return;
+
+        GLint drawBinding = 0;
+        GLint readBinding = 0;
+        glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING_EXT, &drawBinding);
+        glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING_EXT, &readBinding);
+        from->apply(state, osg::FrameBufferObject::READ_FRAMEBUFFER);
+        glReadBuffer(GL_NONE);
+        to->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
+        glDrawBuffer(GL_NONE);
+        ext->glBlitFramebuffer(0, 0, mWidth, mHeight, 0, 0, mWidth, mHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+        ext->glBindFramebuffer(GL_READ_FRAMEBUFFER_EXT, readBinding);
+        ext->glBindFramebuffer(GL_DRAW_FRAMEBUFFER_EXT, drawBinding);
     }
 
     void PostProcessor::captureWorldDepth(osg::RenderInfo& renderInfo)
     {
-        // R5.1 attaches mDepthTexture directly to the main scene FBO. Copying a
-        // texture from the framebuffer into itself is undefined, so the old R3/R4
-        // copy bridge is deliberately retired. The attachment remains directly
-        // sampleable by the post-processing passes. A dedicated pre-first-person
-        // world-depth attachment will replace this compatibility marker later.
-        (void)renderInfo;
-        mWorldDepthCapturedBeforeFirstPerson.store(true, std::memory_order_release);
+        // R5.1 only marked this point; the depth effects then read a buffer the first-person clear had emptied (all
+        // "sky" except the arms). The world depth is copied out here instead.
+        copySceneDepth(*renderInfo.getState());
+        if (const osg::FrameStamp* stamp = renderInfo.getState()->getFrameStamp())
+            mWorldDepthFrame.store(stamp->getFrameNumber(), std::memory_order_release);
+    }
+
+    void PostProcessor::drawFirstPersonDepth(osgUtil::RenderBin* bin, osg::RenderInfo& renderInfo,
+        osgUtil::RenderLeaf*& previous)
+    {
+        // The arms, drawn again into the depth copy with colour writes off, so effects see them in front of the
+        // world (OpenMW 0.51's "depth accumulation pass")
+        osg::State& state = *renderInfo.getState();
+        const osg::ref_ptr<osg::FrameBufferObject> world = mWorldDepthFbo;
+        osg::GLExtensions* ext = state.get<osg::GLExtensions>();
+        if (!world || !ext || !ext->isFrameBufferObjectSupported)
+            return;
+
+        GLint drawBinding = 0;
+        glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING_EXT, &drawBinding);
+        world->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
+        glDrawBuffer(GL_NONE);
+        const osg::ref_ptr<osg::StateSet> restore = bin->getStateSet();
+        bin->setStateSet(mDepthOnlyState.get());
+        bin->drawImplementation(renderInfo, previous);
+        bin->setStateSet(restore.get());
+        ext->glBindFramebuffer(GL_DRAW_FRAMEBUFFER_EXT, drawBinding);
+    }
+
+    void PostProcessor::ensureWorldDepth(osg::RenderInfo& renderInfo)
+    {
+        const osg::FrameStamp* stamp = renderInfo.getState()->getFrameStamp();
+        if (!stamp || mWorldDepthFrame.load(std::memory_order_acquire) == stamp->getFrameNumber())
+            return;
+        copySceneDepth(*renderInfo.getState());
+        mWorldDepthFrame.store(stamp->getFrameNumber(), std::memory_order_release);
+    }
+
+    void PostProcessor::checkOutputOnce(osg::RenderInfo& renderInfo)
+    {
+        osg::State& state = *renderInfo.getState();
+        static const unsigned int sampleFrames[] = { 600, 3000, 9000 };
+        const osg::FrameStamp* stamp = state.getFrameStamp();
+        const unsigned int done = mOutputChecks.load(std::memory_order_acquire);
+        if (!stamp || done >= 3 || stamp->getFrameNumber() < sampleFrames[done])
+            return;
+        mOutputChecks.store(done + 1, std::memory_order_release);
+        osg::GLExtensions* ext = state.get<osg::GLExtensions>();
+        const osg::ref_ptr<osg::FrameBufferObject> sceneColor = mSceneColorFbo;
+        if (!ext || !ext->isFrameBufferObjectSupported || !sceneColor)
+            return;
+
+        GLint readBinding = 0;
+        glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING_EXT, &readBinding);
+        float screen[4] = { -1.f, -1.f, -1.f, -1.f };
+        float scene[4] = { -1.f, -1.f, -1.f, -1.f };
+        ext->glBindFramebuffer(GL_READ_FRAMEBUFFER_EXT, 0);
+        glReadBuffer(GL_BACK);
+        glReadPixels(mWidth / 2, mHeight / 2, 1, 1, GL_RGBA, GL_FLOAT, screen);
+        sceneColor->apply(state, osg::FrameBufferObject::READ_FRAMEBUFFER);
+        glReadBuffer(GL_COLOR_ATTACHMENT0_EXT);
+        glReadPixels(mWidth / 2, mHeight / 2, 1, 1, GL_RGBA, GL_FLOAT, scene);
+        ext->glBindFramebuffer(GL_READ_FRAMEBUFFER_EXT, readBinding);
+
+        Log(Debug::Info) << "Post-processing check (frame " << stamp->getFrameNumber() << ", effects "
+                         << (mEnabled && !mRuntimePasses.empty() ? "on" : "off") << "): rendered world centre "
+                         << scene[0] << " " << scene[1] << " " << scene[2] << ", screen centre after the final blit "
+                         << screen[0] << " " << screen[1] << " " << screen[2] << " (OpenGL error 0x" << std::hex
+                         << glGetError() << std::dec << ")";
     }
 
     void PostProcessor::captureWorldDepthBeforeFirstPersonClear(osg::RenderInfo& renderInfo)
@@ -1694,6 +1822,14 @@ namespace MWRender
         PostProcessor* processor = sActiveProcessor.load(std::memory_order_acquire);
         if (processor)
             processor->captureWorldDepth(renderInfo);
+    }
+
+    void PostProcessor::addFirstPersonDepth(osgUtil::RenderBin* bin, osg::RenderInfo& renderInfo,
+        osgUtil::RenderLeaf*& previous)
+    {
+        PostProcessor* processor = sActiveProcessor.load(std::memory_order_acquire);
+        if (processor)
+            processor->drawFirstPersonDepth(bin, renderInfo, previous);
     }
 
     void PostProcessor::update(float dt)

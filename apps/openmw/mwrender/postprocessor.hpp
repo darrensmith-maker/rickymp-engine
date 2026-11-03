@@ -17,6 +17,7 @@
 
 namespace osg
 {
+    class FrameBufferObject;
     class Geode;
     class Group;
     class Program;
@@ -25,6 +26,12 @@ namespace osg
     class Texture;
     class Texture2D;
     class Uniform;
+}
+
+namespace osgUtil
+{
+    class RenderBin;
+    class RenderLeaf;
 }
 
 namespace Fx
@@ -101,9 +108,20 @@ namespace MWRender
         static PostProcessor* getActiveProcessor();
         std::shared_ptr<Fx::Technique> getTechniqueInfo(const std::string& name);
 
-        // OpenMW 0.47 clears the world depth immediately before drawing the
-        // first-person body. Preserve the world depth for .omwfx depth queries.
+        // OpenMW 0.47 clears the depth before drawing the first-person arms. Effects read a copy instead: the world
+        // depth is copied before that clear, and the arms are then drawn into the copy depth-only, as OpenMW 0.51's
+        // DepthClearCallback does, so the copy is complete. Both are called from NpcAnimation's DepthClearCallback.
         static void captureWorldDepthBeforeFirstPersonClear(osg::RenderInfo& renderInfo);
+        static void addFirstPersonDepth(osgUtil::RenderBin* bin, osg::RenderInfo& renderInfo,
+            osgUtil::RenderLeaf*& previous);
+
+        // Fills the depth copy once per frame when nothing in first person did (third-person view); every effect
+        // pass camera calls it before drawing
+        void ensureWorldDepth(osg::RenderInfo& renderInfo);
+
+        // At frames 600, 3000 and 9000: logs the centre pixel of the rendered world and of the screen after the
+        // final blit, so a black picture says which half failed
+        void checkOutputOnce(osg::RenderInfo& renderInfo);
 
     private:
         struct RuntimePass;
@@ -119,6 +137,9 @@ namespace MWRender
         std::shared_ptr<Fx::Technique> loadTechnique(const std::string& name);
 
         void captureWorldDepth(osg::RenderInfo& renderInfo);
+        void drawFirstPersonDepth(osgUtil::RenderBin* bin, osg::RenderInfo& renderInfo, osgUtil::RenderLeaf*& previous);
+        void copySceneDepth(osg::State& state);
+        void createCopyFbos();
         void updateFinalSource();
         void resizeTargets(int width, int height);
         void createStateUniforms();
@@ -167,7 +188,8 @@ namespace MWRender
         float mDeltaTime = 0.f;
         bool mChainDirty = true;
         bool mReady = false;
-        std::atomic<bool> mWorldDepthCapturedBeforeFirstPerson{false};
+        std::atomic<unsigned int> mWorldDepthFrame{~0u};   // frame whose depth is in mWorldDepthTexture
+        std::atomic<unsigned int> mOutputChecks{0};   // how many of checkOutputOnce's samples are logged
 
         int mWidth = 0;
         int mHeight = 0;
@@ -191,6 +213,11 @@ namespace MWRender
 
         osg::ref_ptr<osg::Texture2D> mSceneTexture;
         osg::ref_ptr<osg::Texture2D> mDepthTexture;
+        osg::ref_ptr<osg::Texture2D> mWorldDepthTexture;   // what effects sample as depth (see captureWorldDepth)
+        osg::ref_ptr<osg::FrameBufferObject> mSceneDepthFbo;
+        osg::ref_ptr<osg::FrameBufferObject> mWorldDepthFbo;
+        osg::ref_ptr<osg::FrameBufferObject> mSceneColorFbo;
+        osg::ref_ptr<osg::StateSet> mDepthOnlyState;
         osg::ref_ptr<osg::Texture2D> mPingTextureA;
         osg::ref_ptr<osg::Texture2D> mPingTextureB;
         osg::ref_ptr<osg::Texture2D> mPingTextureC;
