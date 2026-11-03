@@ -758,6 +758,11 @@ void main(void) {
     vec3 arenaBlendedFog = arenaFogColour(gl_Fog.color.xyz, position.xyz - camPos);
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, arenaBlendedFog, fogVal);
 
+#if @writeNormals
+    // The wave normal, view-space, for the post-processing normals buffer (OpenMW 0.51's water.frag)
+    gl_FragData[1] = vec4(normalize(gl_NormalMatrix * normal) * 0.5 + 0.5, 1.0);
+#endif
+
     applyShadowDebugOverlay();
 }
     

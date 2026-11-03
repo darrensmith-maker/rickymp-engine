@@ -1,6 +1,7 @@
 #include "shadervisitor.hpp"
 
 #include <osg/AlphaFunc>
+#include <osg/ColorMaski>
 #include <osg/Geometry>
 #include <osg/GLExtensions>
 #include <osg/Material>
@@ -476,6 +477,20 @@ namespace Shader
 
         writableStateSet->addUniform(new osg::Uniform("colorMode", reqs.mColorMode));
         addedState->addUniform("colorMode");
+
+        // Alpha-blended objects keep out of the post-processing normals buffer (the second colour target the
+        // shaders write with @writeNormals): they only partly cover what is behind them. As OpenMW 0.51 does.
+        if (reqs.mAlphaBlend)
+        {
+            const ShaderManager::DefineMap globalDefines = mShaderManager.getGlobalDefines();
+            const auto writeNormals = globalDefines.find("writeNormals");
+            if (writeNormals != globalDefines.end() && writeNormals->second == "1")
+            {
+                osg::ref_ptr<osg::ColorMaski> colorMask = new osg::ColorMaski(1, false, false, false, false);
+                writableStateSet->setAttribute(colorMask);
+                addedState->setAttribute(colorMask);
+            }
+        }
 
         defineMap["alphaFunc"] = std::to_string(reqs.mAlphaFunc);
 

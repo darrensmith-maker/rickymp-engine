@@ -104,5 +104,10 @@ void main()
         gl_FragData[0].a = 1.0;
 #endif
 
+#if @writeNormals
+    // View-space normal for the post-processing normals buffer (OpenMW 0.51's bs/default.frag)
+    gl_FragData[1] = vec4(normalize(viewNormal) * 0.5 + 0.5, 1.0);
+#endif
+
     applyShadowDebugOverlay();
 }

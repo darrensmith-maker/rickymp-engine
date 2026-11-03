@@ -120,6 +120,11 @@ namespace MWRender
         // every frame
         osg::FrameBufferObject* sceneFbo() const { return mSceneFbo.get(); }
 
+        // Whether the scene writes view-space normals into a second colour target for the effects, as OpenMW
+        // 0.51's normals buffer: every scene object must go through the shaders ([Shaders] force shaders) and the
+        // driver needs OpenGL 3.0 (indexed colour masks). Otherwise effects get normals rebuilt from depth.
+        static bool sceneNormalsSupported();
+
         // Draws the transparent render bin. For the world it also starts the effects' depth copy from the opaque
         // world and then adds the transparent objects clipped to their opaque texels (OpenMW 0.51's transparent
         // post-pass), so leaf cards do not cover the sky in the copy with their see-through corners.
@@ -226,6 +231,7 @@ namespace MWRender
         osg::ref_ptr<osg::Texture2D> mSceneTexture;
         osg::ref_ptr<osg::Texture2D> mDepthTexture;
         osg::ref_ptr<osg::Texture2D> mWorldDepthTexture;   // what effects sample as depth (see captureWorldDepth)
+        osg::ref_ptr<osg::Texture2D> mNormalsTexture;      // the scene's normals, when sceneNormalsSupported()
         osg::ref_ptr<osg::FrameBufferObject> mSceneFbo;
         osg::ref_ptr<osg::NodeCallback> mSceneFboCallback;
         osg::ref_ptr<osg::FrameBufferObject> mSceneDepthFbo;

@@ -140,5 +140,17 @@ void main()
     vec3 arenaBlendedFog = arenaFogColour(gl_Fog.color.xyz, arenaWorldFogDirection);
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, arenaBlendedFog, fogValue);
 
+#if @writeNormals
+    // View-space normal for the post-processing normals buffer, as OpenMW 0.51's groundcover.frag writes it;
+    // without a normal map or per-pixel lighting there is no normal here, and grass stands up
+#if @normalMap
+    gl_FragData[1] = vec4(normalize(viewNormal) * 0.5 + 0.5, 1.0);
+#elif PER_PIXEL_LIGHTING
+    gl_FragData[1] = vec4(normalize(gl_NormalMatrix * passNormal) * 0.5 + 0.5, 1.0);
+#else
+    gl_FragData[1] = vec4(normalize(gl_NormalMatrix * vec3(0.0, 0.0, 1.0)) * 0.5 + 0.5, 1.0);
+#endif
+#endif
+
     applyShadowDebugOverlay();
 }

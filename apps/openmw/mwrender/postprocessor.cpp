@@ -586,10 +586,13 @@ vec3 _omw_GetViewPosFromUV(vec2 uv)
 
 vec3 omw_GetNormals(vec2 uv)
 {
-    // View-space normals rebuilt from depth (the scene has no normals buffer yet): of the two neighbours on
-    // each axis, use the one nearer in depth so silhouette edges do not smear. Every effect gets them, as in
-    // OpenMW 0.51, where omw_GetNormals always reads the normals buffer whether or not that effect set
-    // pass_normals (AdvancedDebugger does not, and validated a flat placeholder before).
+    // Every effect gets the scene's normals, as in OpenMW 0.51, whether or not it set pass_normals.
+#if _OMW_NORMALS_BUFFER
+    // The normals buffer the scene shaders write (view space, stored as n * 0.5 + 0.5), as 0.51 reads it
+    return texture2D(omw_SamplerNormals, uv).rgb * 2.0 - 1.0;
+#else
+    // Without that buffer, view-space normals rebuilt from depth (flat per triangle): of the two neighbours on
+    // each axis, use the one nearer in depth so silhouette edges do not smear.
     vec2 texel = omw.rcpResolution;
     vec3 c = _omw_GetViewPosFromUV(uv);
     vec3 xr = _omw_GetViewPosFromUV(clamp(uv + vec2(texel.x, 0.0), vec2(0.0), vec2(1.0)));
@@ -599,6 +602,7 @@ vec3 omw_GetNormals(vec2 uv)
     vec3 dx = (abs(xr.z - c.z) < abs(c.z - xl.z)) ? (xr - c) : (c - xl);
     vec3 dy = (abs(yu.z - c.z) < abs(c.z - yd.z)) ? (yu - c) : (c - yd);
     return normalize(cross(dx, dy));
+#endif
 }
 
 vec3 omw_GetNormalsWorldSpace(vec2 uv) { return (vec4(omw_GetNormals(uv), 0.0) * omw.viewMatrix).rgb; }
@@ -683,6 +687,21 @@ namespace MWRender
         mSceneTexture = createSceneTexture();
         mDepthTexture = createDepthTexture();
         mWorldDepthTexture = createDepthTexture();
+        if (sceneNormalsSupported())
+        {
+            // As OpenMW 0.51's Tex_Normal: RGB, the view-space normal stored as n * 0.5 + 0.5
+            mNormalsTexture = new osg::Texture2D;
+            mNormalsTexture->setInternalFormat(GL_RGB8);
+            mNormalsTexture->setSourceFormat(GL_RGB);
+            mNormalsTexture->setSourceType(GL_UNSIGNED_BYTE);
+            mNormalsTexture->setFilter(osg::Texture::MIN_FILTER, osg::Texture::LINEAR);
+            mNormalsTexture->setFilter(osg::Texture::MAG_FILTER, osg::Texture::LINEAR);
+            mNormalsTexture->setWrap(osg::Texture::WRAP_S, osg::Texture::CLAMP_TO_EDGE);
+            mNormalsTexture->setWrap(osg::Texture::WRAP_T, osg::Texture::CLAMP_TO_EDGE);
+            mNormalsTexture->setResizeNonPowerOfTwoHint(false);
+        }
+        Log(Debug::Info) << "Post-processing: scene normals "
+                         << (mNormalsTexture ? "buffer (written by the scene shaders)" : "rebuilt from depth");
         mDepthOnlyState = new osg::StateSet;
         mDepthOnlyState->setAttributeAndModes(new osg::ColorMask(false, false, false, false), osg::StateAttribute::ON);
         createTransparentDepthState();
@@ -1094,8 +1113,12 @@ namespace MWRender
                 pass->mState->addUniform(new osg::Uniform("omw_SamplerDepth", 2));
                 pass->mState->addUniform(new osg::Uniform("omw_EyeAdaptation", 3));
                 pass->mState->addUniform(new osg::Uniform("omw_SamplerDistortion", 4));
+                // unit 5: the scene's normals buffer (read only when the header's _OMW_NORMALS_BUFFER is 1)
+                if (mNormalsTexture)
+                    pass->mState->setTextureAttribute(5, mNormalsTexture);
+                pass->mState->addUniform(new osg::Uniform("omw_SamplerNormals", 5));
 
-                int unit = 5;
+                int unit = 6;
                 for (const std::string& input : spec.mInputs)
                 {
                     if (input.empty())
@@ -1457,6 +1480,7 @@ namespace MWRender
         source << "#define OMW_NORMALS " << (technique.wantsNormals() ? 1 : 0) << "\n";
         source << "#define OMW_USE_BINDINGS 0\n";
         source << "#define OMW_MULTIVIEW 0\n";
+        source << "#define _OMW_NORMALS_BUFFER " << (mNormalsTexture ? 1 : 0) << "\n";
         source << kPassHeader;
         for (const std::string& target : sampledTargets)
             source << "uniform sampler2D " << target << ";\n";
@@ -1520,6 +1544,8 @@ namespace MWRender
         mSceneTexture->setTextureSize(mWidth, mHeight);
         mDepthTexture->setTextureSize(mWidth, mHeight);
         mWorldDepthTexture->setTextureSize(mWidth, mHeight);
+        if (mNormalsTexture)
+            mNormalsTexture->setTextureSize(mWidth, mHeight);
         createCopyFbos();
         mPingTextureA->setTextureSize(mWidth, mHeight);
         mPingTextureB->setTextureSize(mWidth, mHeight);
@@ -1796,6 +1822,20 @@ namespace MWRender
             mFinalState->setTextureAttribute(0, source);
     }
 
+    bool PostProcessor::sceneNormalsSupported()
+    {
+        // Decided once, when the renderer is built (the window already exists): the same answer goes to the
+        // scene shaders (RenderingManager's writeNormals define), the sky, the shader visitor and the effects
+        static const bool supported = []
+        {
+            if (!Settings::Manager::getBool("force shaders", "Shaders"))
+                return false;
+            const osg::GLExtensions* exts = osg::GLExtensions::Get(0, false);
+            return exts && exts->glslLanguageVersion >= 1.3f;
+        }();
+        return supported;
+    }
+
     void PostProcessor::createCopyFbos()
     {
         // The world framebuffer (SceneFboCullCallback), and framebuffers for copying depth and for the output
@@ -1803,6 +1843,8 @@ namespace MWRender
         mSceneFbo = new osg::FrameBufferObject;
         mSceneFbo->setAttachment(osg::Camera::COLOR_BUFFER0, osg::FrameBufferAttachment(mSceneTexture.get()));
         mSceneFbo->setAttachment(osg::Camera::DEPTH_BUFFER, osg::FrameBufferAttachment(mDepthTexture.get()));
+        if (mNormalsTexture)
+            mSceneFbo->setAttachment(osg::Camera::COLOR_BUFFER1, osg::FrameBufferAttachment(mNormalsTexture.get()));
         mSceneDepthFbo = new osg::FrameBufferObject;
         mSceneDepthFbo->setAttachment(osg::Camera::DEPTH_BUFFER, osg::FrameBufferAttachment(mDepthTexture.get()));
         mWorldDepthFbo = new osg::FrameBufferObject;

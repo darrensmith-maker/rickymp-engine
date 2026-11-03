@@ -52,4 +52,10 @@ void main()
 #endif
 
     gl_FragData[0].xyz = mix(gl_FragData[0].xyz, gl_Fog.color.xyz, fogValue);
+
+#if @writeNormals
+    // Unlit: no normal reaches this shader, so the post-processing normals buffer gets one facing the camera
+    // rather than an undefined value
+    gl_FragData[1] = vec4(0.5, 0.5, 1.0, 1.0);
+#endif
 }

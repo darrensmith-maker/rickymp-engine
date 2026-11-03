@@ -417,6 +417,8 @@ namespace MWRender
         globalDefines["radialFog"] = Settings::Manager::getBool("radial fog", "Shaders") ? "1" : "0";
         globalDefines["materialQuality"] = std::to_string(materialQuality);
         globalDefines["useGPUShader4"] = "0";
+        // scene shaders also write view-space normals for the post-processing effects (a second colour target)
+        globalDefines["writeNormals"] = PostProcessor::sceneNormalsSupported() ? "1" : "0";
 
         for (auto itr = lightDefines.begin(); itr != lightDefines.end(); itr++)
             globalDefines[itr->first] = itr->second;
