@@ -57,8 +57,15 @@ void Manager::clear()
 */
 void Manager::loadDefault(const std::string &file, bool base64encoded)
 {
+    // The file is read on its own, so the parser still rejects a setting written twice in it, and then merged
+    // over what is already loaded. The client loads tes3mp-client-default.cfg first, and the renderer guard below
+    // has added its keys by then; reading defaults.bin straight into the same map stopped the client at startup
+    // with "duplicate setting: [Shaders] antialias alpha test". The file's own values win over the guard's.
     SettingsFileParser parser;
-    parser.loadSettingsFile(file, mDefaultSettings, base64encoded);
+    CategorySettingValueMap loaded;
+    parser.loadSettingsFile(file, loaded, base64encoded);
+    for (auto& entry : loaded)
+        mDefaultSettings[entry.first] = std::move(entry.second);
     injectArenaMPRendererDefaults(mDefaultSettings);
 }
 /*
