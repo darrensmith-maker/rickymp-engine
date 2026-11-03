@@ -270,6 +270,51 @@ namespace
         }
     }
 
+    // sampler_1d / sampler_2d / sampler_3d blocks, with OpenMW 0.51's keys (components/fx/technique.cpp there,
+    // Technique::parseSampler): source, min_filter / mag_filter (not 1D), wrap_s / wrap_t, wrap_r (3D only),
+    // compression, source_type, source_format, internal_format.
+    void parseSamplerBlock(const std::string& block, Fx::SamplerSpec& sampler)
+    {
+        Lexer lexer(block);
+        while (true)
+        {
+            Token token = lexer.next();
+            if (is<Eof>(token))
+                break;
+            if (!is<Literal>(token))
+                lexer.error("expected sampler property");
+            const std::string key(as<Literal>(token).mValue);
+            expectAssignment(lexer);
+
+            if (key == "source")
+                sampler.mSource = stringValue(lexer);
+            else if (key == "min_filter" && sampler.mDimensions != 1)
+                sampler.mMinFilter = stringValue(lexer);
+            else if (key == "mag_filter" && sampler.mDimensions != 1)
+                sampler.mMagFilter = stringValue(lexer);
+            else if (key == "wrap_s")
+                sampler.mWrapS = stringValue(lexer);
+            else if (key == "wrap_t")
+                sampler.mWrapT = stringValue(lexer);
+            else if (key == "wrap_r" && sampler.mDimensions == 3)
+                sampler.mWrapR = stringValue(lexer);
+            else if (key == "compression")
+                sampler.mCompression = stringValue(lexer);
+            else if (key == "source_type")
+                sampler.mSourceType = stringValue(lexer);
+            else if (key == "source_format")
+                sampler.mSourceFormat = stringValue(lexer);
+            else if (key == "internal_format")
+                sampler.mInternalFormat = stringValue(lexer);
+            else
+                lexer.error("unexpected sampler property '" + key + "'");
+
+            expectTerminator(lexer);
+        }
+        if (sampler.mSource.empty())
+            lexer.error("sampler '" + sampler.mName + "' has no source");
+    }
+
     void parseRenderTargetBlock(const std::string& block, Fx::RenderTargetSpec& target)
     {
         Lexer lexer(block);
@@ -349,7 +394,8 @@ namespace
 
     void parseTechniqueBlock(const std::string& block, Fx::Technique& technique,
         std::vector<std::string>& passOrder, std::string& author, std::string& description, std::string& version,
-        Fx::FlagsType& flags, bool& passNormals, bool& hdr, bool& passLights)
+        Fx::FlagsType& flags, bool& passNormals, bool& hdr, bool& passLights, int& glslVersion,
+        std::string& glslProfile, std::vector<std::string>& glslExtensions)
     {
         Lexer lexer(block);
         while (true)
@@ -367,7 +413,16 @@ namespace
                 passOrder = literalList(lexer);
                 continue;
             }
-            if (key == "author")
+            if (key == "glsl_extensions")
+            {
+                glslExtensions = literalList(lexer);
+                continue;
+            }
+            if (key == "glsl_version")
+                glslVersion = std::max(glslVersion, integerValue(lexer));
+            else if (key == "glsl_profile")
+                glslProfile = stringValue(lexer);
+            else if (key == "author")
                 author = stringValue(lexer);
             else if (key == "description")
                 description = stringValue(lexer);
@@ -466,6 +521,10 @@ namespace Fx
         mPassNormals = false;
         mHDR = false;
         mPassLights = false;
+        mSamplers.clear();
+        mGLSLVersion = 0;
+        mGLSLProfile.clear();
+        mGLSLExtensions.clear();
     }
 
     const RenderTargetSpec* Technique::findRenderTarget(const std::string& name) const
@@ -527,21 +586,49 @@ namespace Fx
                     continue;
                 }
 
-                if (is<Lexer::Fragment>(token))
+                if (is<Lexer::Fragment>(token) || is<Lexer::Vertex>(token))
                 {
-                    PassSpec pass;
+                    // A vertex and a fragment block with the same name make one pass, as in OpenMW 0.51; their
+                    // arguments (target=, rt1= ...) are merged.
+                    const bool vertex = is<Lexer::Vertex>(token);
+                    std::string name = "main";
                     if (is<Lexer::Literal>(lexer.peek()))
-                        pass.mName = literal(lexer);
-                    else
-                        pass.mName = "main";
+                        name = literal(lexer);
+                    auto it = std::find_if(mPasses.begin(), mPasses.end(),
+                        [&](const PassSpec& existing) { return existing.mName == name; });
+                    if (it == mPasses.end())
+                    {
+                        PassSpec created;
+                        created.mName = name;
+                        mPasses.push_back(created);
+                        it = mPasses.end() - 1;
+                    }
+                    PassSpec& pass = *it;
                     parsePassHeader(lexer, pass);
                     expect<Lexer::Open_bracket>(lexer, "'{'");
                     const auto block = lexer.jump();
                     if (!block)
-                        lexer.error("unterminated fragment block");
-                    pass.mSource = std::string(*block);
+                        lexer.error(vertex ? "unterminated vertex block" : "unterminated fragment block");
+                    std::string& code = vertex ? pass.mVertexSource : pass.mSource;
+                    if (!code.empty())
+                        lexer.error(std::string("duplicate ") + (vertex ? "vertex" : "fragment") + " block '" + name + "'");
+                    code = std::string(*block);
                     expect<Lexer::Close_bracket>(lexer, "'}'");
-                    mPasses.push_back(pass);
+                    continue;
+                }
+
+                if (is<Lexer::Sampler_1D>(token) || is<Lexer::Sampler_2D>(token) || is<Lexer::Sampler_3D>(token))
+                {
+                    SamplerSpec sampler;
+                    sampler.mDimensions = is<Lexer::Sampler_1D>(token) ? 1 : (is<Lexer::Sampler_3D>(token) ? 3 : 2);
+                    sampler.mName = literal(lexer);
+                    expect<Lexer::Open_bracket>(lexer, "'{'");
+                    const auto block = lexer.jump();
+                    if (!block)
+                        lexer.error("unterminated sampler block");
+                    parseSamplerBlock(std::string(*block), sampler);
+                    expect<Lexer::Close_bracket>(lexer, "'}'");
+                    mSamplers.push_back(sampler);
                     continue;
                 }
 
@@ -552,18 +639,25 @@ namespace Fx
                     if (!block)
                         lexer.error("unterminated technique block");
                     parseTechniqueBlock(std::string(*block), *this, mPassOrder, mAuthor, mDescription, mVersion,
-                        mFlags, mPassNormals, mHDR, mPassLights);
+                        mFlags, mPassNormals, mHDR, mPassLights, mGLSLVersion, mGLSLProfile, mGLSLExtensions);
                     expect<Lexer::Close_bracket>(lexer, "'}'");
                     continue;
                 }
 
-                // Vertex/compute/sampler blocks belong to later renderer migration layers.
-                // Fail loudly instead of silently accepting an effect that R3 cannot execute correctly.
-                lexer.error("R3 supports shared/uniform/render_target/fragment/technique blocks only");
+                if (is<Lexer::Compute>(token))
+                    lexer.error("compute passes are not supported by this renderer");
+
+                lexer.error("unexpected token: expected uniform, shared, render_target, sampler, vertex, "
+                            "fragment or technique block");
             }
 
             if (mPasses.empty())
                 throw std::runtime_error("effect has no fragment passes");
+            for (const PassSpec& pass : mPasses)
+            {
+                if (pass.mSource.empty())
+                    throw std::runtime_error(std::string("pass '") + pass.mName + "' has a vertex block but no fragment block");
+            }
 
             if (mPassOrder.empty())
             {

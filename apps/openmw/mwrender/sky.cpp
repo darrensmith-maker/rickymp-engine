@@ -531,6 +531,16 @@ public:
             mSunGlareCallback->setTimeOfDayFade(val);
     }
 
+    // Hide or show the glare and flash, as OpenMW 0.51's Sun::setSunglare (post-processing effects that draw
+    // their own sun, such as godrays and VAIO, ask for it with the disable_sunglare flag)
+    void setSunglare(bool enabled)
+    {
+        if (mSunGlareNode)
+            mSunGlareNode->setNodeMask(enabled ? ~0u : 0u);
+        if (mSunFlashNode)
+            mSunFlashNode->setNodeMask(enabled ? ~0u : 0u);
+    }
+
 private:
     class DummyComputeBoundCallback : public osg::Node::ComputeBoundingSphereCallback
     {
@@ -1182,6 +1192,7 @@ void SkyManager::create()
     atmosphereNight->addUpdateCallback(mAtmosphereNightUpdater);
 
     mSun.reset(new Sun(mEarlyRenderBinRoot, *mSceneManager->getImageManager()));
+    mSun->setSunglare(mSunglareEnabled);
 
     mMasser.reset(new Moon(mEarlyRenderBinRoot, *mSceneManager->getImageManager(), Fallback::Map::getFloat("Moons_Masser_Size")/125, Moon::Type_Masser));
     mSecunda.reset(new Moon(mEarlyRenderBinRoot, *mSceneManager->getImageManager(), Fallback::Map::getFloat("Moons_Secunda_Size")/125, Moon::Type_Secunda));
@@ -1884,6 +1895,15 @@ void SkyManager::setDate(int day, int month)
 void SkyManager::setGlareTimeOfDayFade(float val)
 {
     mSun->setGlareTimeOfDayFade(val);
+}
+
+void SkyManager::setSunglare(bool enabled)
+{
+    if (mSunglareEnabled == enabled)
+        return;
+    mSunglareEnabled = enabled;
+    if (mSun)
+        mSun->setSunglare(enabled);
 }
 
 void SkyManager::setWaterHeight(float height)

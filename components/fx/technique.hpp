@@ -69,9 +69,28 @@ namespace Fx
     struct PassSpec
     {
         std::string mName;
-        std::string mSource;
+        std::string mSource;        // fragment code
+        std::string mVertexSource;  // vertex code from a "vertex" block of the same name; empty = full-screen default
         std::string mTarget;
         std::array<std::string, 3> mInputs;
+    };
+
+    // A texture an effect loads from the data files: a sampler_1d / sampler_2d / sampler_3d block. Defaults are
+    // OpenMW 0.51's (components/fx/technique.cpp, ProxyTextureData). Empty formats mean "as the image is stored".
+    struct SamplerSpec
+    {
+        std::string mName;
+        int mDimensions = 2;
+        std::string mSource;
+        std::string mMinFilter = "linear_mipmap_linear";
+        std::string mMagFilter = "linear";
+        std::string mWrapS = "clamp_to_edge";
+        std::string mWrapT = "clamp_to_edge";
+        std::string mWrapR = "clamp_to_edge";
+        std::string mCompression;
+        std::string mSourceFormat;
+        std::string mSourceType;
+        std::string mInternalFormat;
     };
 
     class Technique
@@ -89,7 +108,14 @@ namespace Fx
         const std::string& sharedSource() const { return mShared; }
         const std::vector<UniformSpec>& uniforms() const { return mUniforms; }
         const std::vector<RenderTargetSpec>& renderTargets() const { return mRenderTargets; }
+        const std::vector<SamplerSpec>& samplers() const { return mSamplers; }
         const std::vector<PassSpec>& passes() const { return mOrderedPasses; }
+
+        // GLSL the technique asks for (technique block glsl_version / glsl_profile / glsl_extensions);
+        // 0 = no particular version, the engine picks its own
+        int glslVersion() const { return mGLSLVersion; }
+        const std::string& glslProfile() const { return mGLSLProfile; }
+        const std::vector<std::string>& glslExtensions() const { return mGLSLExtensions; }
 
         const std::string& author() const { return mAuthor; }
         const std::string& description() const { return mDescription; }
@@ -107,6 +133,7 @@ namespace Fx
         std::string mShared;
         std::vector<UniformSpec> mUniforms;
         std::vector<RenderTargetSpec> mRenderTargets;
+        std::vector<SamplerSpec> mSamplers;
         std::vector<PassSpec> mPasses;
         std::vector<PassSpec> mOrderedPasses;
         std::vector<std::string> mPassOrder;
@@ -118,6 +145,9 @@ namespace Fx
         bool mPassNormals = false;
         bool mHDR = false;
         bool mPassLights = false;
+        int mGLSLVersion = 0;
+        std::string mGLSLProfile;
+        std::vector<std::string> mGLSLExtensions;
     };
 }
 

@@ -173,6 +173,9 @@ namespace MWRender
 
         void setGlareTimeOfDayFade(float val);
 
+        // false while a post-processing effect with the disable_sunglare flag is running
+        void setSunglare(bool enabled);
+
         /// Enable or disable the water plane (used to remove underwater weather particles)
         void setWaterEnabled(bool enabled);
 
@@ -238,6 +241,8 @@ namespace MWRender
         bool mCreated;
 
         bool mIsStorm;
+
+        bool mSunglareEnabled = true;
 
         int mDay;
         int mMonth;

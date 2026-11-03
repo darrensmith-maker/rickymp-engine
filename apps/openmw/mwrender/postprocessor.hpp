@@ -22,6 +22,7 @@ namespace osg
     class Program;
     class RenderInfo;
     class StateSet;
+    class Texture;
     class Texture2D;
     class Uniform;
 }
@@ -30,6 +31,7 @@ namespace Fx
 {
     class Technique;
     struct RenderTargetSpec;
+    struct SamplerSpec;
 }
 
 namespace Resource
@@ -78,6 +80,9 @@ namespace MWRender
         void setWaterEnabled(bool enabled);
 
         bool isEnabled() const { return mEnabled; }
+
+        // true while an active effect asks for the vanilla sun glare to be hidden (disable_sunglare flag)
+        bool sunglareDisabled() const { return mEnabled && mSunglareDisabled; }
         bool transparentPostpassEnabled() const { return mTransparentPostpass; }
         float autoExposureSpeed() const { return mAutoExposureSpeed; }
 
@@ -128,11 +133,19 @@ namespace MWRender
         static osg::ref_ptr<osg::Camera> createCamera(int orderNum, bool renderToTexture);
         static osg::ref_ptr<osg::Geode> createFullscreenPass(osg::Program* program);
         static osg::ref_ptr<osg::Program> createProgram(const std::string& name, const std::string& fragmentSource);
+        static osg::ref_ptr<osg::Program> createProgram(
+            const std::string& name, const std::string& vertexSource, const std::string& fragmentSource);
         static osg::ref_ptr<osg::Program> createBlitProgram();
-        static std::string makeFragmentSource(const Fx::Technique& technique, const std::string& passSource,
-            const std::vector<std::string>& sampledTargets);
+        osg::ref_ptr<osg::Texture> createSamplerTexture(const Fx::SamplerSpec& spec) const;
+        // One stage of an effect pass with OpenMW 0.51's header; vertexStage selects the vertex shader
+        std::string makeShaderSource(const Fx::Technique& technique, bool vertexStage, const std::string& passSource,
+            const std::vector<std::string>& sampledTargets) const;
 
         const VFS::Manager* mVfs = nullptr;
+        Resource::ResourceSystem* mResourceSystem = nullptr;
+        // GLSL the graphics driver offers (e.g. 460), read once at start; 330+ lets effects use GLSL 3.30 features
+        int mDriverGLSLVersion = 120;
+        bool mSunglareDisabled = false;
         osg::observer_ptr<osg::Camera> mMainCamera;
         osg::observer_ptr<osg::Group> mRootNode;
 

@@ -2,6 +2,7 @@
 
 #include <components/debug/debuglog.hpp>
 #include <components/fx/technique.hpp>
+#include <components/resource/imagemanager.hpp>
 #include <components/resource/resourcesystem.hpp>
 #include <components/vfs/manager.hpp>
 
@@ -14,6 +15,7 @@
 #include <sstream>
 #include <utility>
 
+#include <osg/GLExtensions>
 #include <osg/Geode>
 #include <osg/Geometry>
 #include <osg/Group>
@@ -24,7 +26,9 @@
 #include <osg/Shader>
 #include <osg/State>
 #include <osg/StateSet>
+#include <osg/Texture1D>
 #include <osg/Texture2D>
+#include <osg/Texture3D>
 #include <osg/Uniform>
 #include <osg/Vec2>
 #include <osg/Vec3>
@@ -345,6 +349,20 @@ void main()
 }
 )GLSL";
 
+    // OpenMW 0.51's default vertex shader for passes without a vertex block (components/fx/pass.cpp there,
+    // s_DefaultVertex); it is compiled with the same header as the effect's own stages
+    const char* kDefaultPassVertex = R"GLSL(
+#if OMW_USE_BINDINGS
+    omw_In vec2 omw_Vertex;
+#endif
+omw_Out vec2 omw_TexCoord;
+
+void main()
+{
+    omw_Position = vec4(omw_Vertex.xy, 0.0, 1.0);
+    omw_TexCoord = omw_Position.xy * 0.5 + 0.5;
+})GLSL";
+
     // OpenMW 0.51's post-processing API revision (OPENMW_POSTPROCESSING_API_REVISION in its CMakeLists.txt).
     // Effects branch on it (Rafael's SMAA and wetworld check for 5).
     constexpr int kPostProcessingApiRevision = 5;
@@ -501,6 +519,8 @@ namespace MWRender
         std::string mName;
         std::shared_ptr<Fx::Technique> mTechnique;
         std::unordered_map<std::string, osg::ref_ptr<osg::Texture2D>> mTargets;
+        // sampler_1d/2d/3d textures, loaded once per effect
+        std::unordered_map<std::string, osg::ref_ptr<osg::Texture>> mSamplerTextures;
     };
 
     struct PostProcessor::RuntimePass
@@ -518,6 +538,7 @@ namespace MWRender
 
     PostProcessor::PostProcessor(osg::Camera* mainCamera, osg::Group* rootNode, Resource::ResourceSystem* resourceSystem)
         : mVfs(resourceSystem ? resourceSystem->getVFS() : nullptr)
+        , mResourceSystem(resourceSystem)
         , mMainCamera(mainCamera)
         , mRootNode(rootNode)
     {
@@ -548,6 +569,16 @@ namespace MWRender
         mainCamera->attach(osg::Camera::DEPTH_BUFFER, mDepthTexture);
 
         sActiveProcessor.store(this, std::memory_order_release);
+
+        // The GLSL the driver offers decides the effects' shader version (see makeShaderSource). The window is
+        // realised before the renderer is built, as SceneUtil::LightManager also relies on.
+        if (osg::GLExtensions* exts = osg::GLExtensions::Get(0, false))
+        {
+            if (exts->glslLanguageVersion > 0.f)
+                mDriverGLSLVersion = static_cast<int>(std::lround(exts->glslLanguageVersion * 100.f));
+        }
+        Log(Debug::Info) << "Post-processing: driver GLSL " << mDriverGLSLVersion << ", effects compile as GLSL "
+                         << (mDriverGLSLVersion >= 330 ? "330 compatibility" : "120");
 
         createStateUniforms();
         discoverEffects();
@@ -761,6 +792,7 @@ namespace MWRender
     {
         clearRuntimeChain();
         mChainDirty = false;
+        mSunglareDisabled = false;
 
         if (!mReady || !mRootNode.valid())
             return;
@@ -802,8 +834,21 @@ namespace MWRender
             if (!techniqueVisible(*runtimeTechnique))
                 continue;
 
+            if (technique->flags() & Fx::Technique::Flag_Disable_SunGlare)
+                mSunglareDisabled = true;
+
             for (const Fx::RenderTargetSpec& spec : technique->renderTargets())
                 runtimeTechnique->mTargets[spec.mName] = createTargetTexture(spec);
+
+            for (const Fx::SamplerSpec& spec : technique->samplers())
+            {
+                osg::ref_ptr<osg::Texture> texture = createSamplerTexture(spec);
+                if (texture)
+                    runtimeTechnique->mSamplerTextures[spec.mName] = texture;
+                else
+                    Log(Debug::Warning) << "Effect '" << effectName << "': could not load texture '" << spec.mSource
+                                        << "' for sampler '" << spec.mName << "'";
+            }
 
             RuntimeTechnique* runtimeOwner = runtimeTechnique.get();
             mRuntimeTechniques.push_back(std::move(runtimeTechnique));
@@ -858,10 +903,13 @@ namespace MWRender
                         sampledTargets.push_back(input);
                 }
 
-                const std::string fragmentSource
-                    = makeFragmentSource(*technique, spec.mSource, sampledTargets);
+                // Both stages get the same header, as in OpenMW 0.51; a pass without a vertex block uses 0.51's
+                // default full-screen vertex shader.
+                const std::string vertexSource = makeShaderSource(*technique, true,
+                    spec.mVertexSource.empty() ? std::string(kDefaultPassVertex) : spec.mVertexSource, sampledTargets);
+                const std::string fragmentSource = makeShaderSource(*technique, false, spec.mSource, sampledTargets);
                 osg::ref_ptr<osg::Program> program
-                    = createProgram(effectName + ":" + spec.mName, fragmentSource);
+                    = createProgram(effectName + ":" + spec.mName, vertexSource, fragmentSource);
                 if (!program)
                 {
                     Log(Debug::Error) << "Could not create program for effect '" << effectName
@@ -896,6 +944,14 @@ namespace MWRender
                         continue;
                     pass->mState->setTextureAttributeAndModes(unit, inputIt->second, osg::StateAttribute::ON);
                     pass->mState->addUniform(new osg::Uniform(input.c_str(), unit));
+                    ++unit;
+                }
+
+                // The effect's own textures (sampler blocks), declared for it in the shader header
+                for (const auto& sampler : runtimeOwner->mSamplerTextures)
+                {
+                    pass->mState->setTextureAttributeAndModes(unit, sampler.second, osg::StateAttribute::ON);
+                    pass->mState->addUniform(new osg::Uniform(sampler.first.c_str(), unit));
                     ++unit;
                 }
 
@@ -1185,20 +1241,51 @@ namespace MWRender
         return program;
     }
 
+    osg::ref_ptr<osg::Program> PostProcessor::createProgram(
+        const std::string& name, const std::string& vertexSource, const std::string& fragmentSource)
+    {
+        osg::ref_ptr<osg::Shader> vertex = new osg::Shader(osg::Shader::VERTEX);
+        vertex->setName(name + ":vertex");
+        vertex->setShaderSource(vertexSource);
+
+        osg::ref_ptr<osg::Shader> fragment = new osg::Shader(osg::Shader::FRAGMENT);
+        fragment->setName(name + ":fragment");
+        fragment->setShaderSource(fragmentSource);
+
+        osg::ref_ptr<osg::Program> program = new osg::Program;
+        program->setName(name);
+        program->addShader(vertex);
+        program->addShader(fragment);
+        return program;
+    }
+
     osg::ref_ptr<osg::Program> PostProcessor::createBlitProgram()
     {
         return createProgram("OpenMW52_PostProcess_FinalBlit", kBlitFragment);
     }
 
-    std::string PostProcessor::makeFragmentSource(const Fx::Technique& technique, const std::string& passSource,
-        const std::vector<std::string>& sampledTargets)
+    std::string PostProcessor::makeShaderSource(const Fx::Technique& technique, bool vertexStage,
+        const std::string& passSource, const std::vector<std::string>& sampledTargets) const
     {
+        // The header every pass stage gets, following OpenMW 0.51 (components/fx/pass.cpp and stateupdater.hpp
+        // there): the same defines, macros, sampler names, "omw" fields and helper functions, so effects written
+        // for OpenMW 0.49+ (post-processing API revision 5) compile unchanged. Standard depth (no reverse-Z);
+        // normals are rebuilt from depth until the scene writes a normals buffer.
+        //
+        // Version: GLSL 3.30 in the compatibility profile when the driver offers it, so effects can use the 1.30+
+        // features 0.51 gives them (texture(), textureLod, texelFetch, inverse(), round()); the header's legacy
+        // names (gl_Vertex, gl_FragColor, varying, texture2D) stay valid in that profile. GLSL 1.20 otherwise.
+        // An effect may ask for more with glsl_version / glsl_profile / glsl_extensions in its technique block.
+        (void)vertexStage;   // same header for both stages, as in 0.51
+        const int version = std::max(mDriverGLSLVersion >= 330 ? 330 : 120, technique.glslVersion());
+        std::string profile = technique.glslProfile();
+        if (profile.empty() && version >= 150)
+            profile = "compatibility";
+
         std::ostringstream source;
-        // The header every pass gets, following OpenMW 0.51 (components/fx/pass.cpp and stateupdater.hpp there):
-        // the same defines, macros, sampler names, "omw" fields and helper functions, so effects written for
-        // OpenMW 0.49+ (post-processing API revision 5) compile unchanged. GLSL 1.20 mapping; standard depth
-        // (no reverse-Z); normals are rebuilt from depth until the scene writes a normals buffer.
-        source << "#version 120\n";
+        source << "#version " << version << (profile.empty() ? std::string() : " " + profile) << "\n";
+        for (const std::string& extension : technique.glslExtensions())
+            source << "#ifdef " << extension << "\n#extension " << extension << " : enable\n#endif\n";
         source << "#define OMW_API_VERSION " << kPostProcessingApiRevision << "\n";
         source << "#define OMW_REVERSE_Z 0\n";
         source << "#define OMW_RADIAL_FOG " << (Settings::Manager::getBool("radial fog", "Shaders") ? 1 : 0) << "\n";
@@ -1210,11 +1297,48 @@ namespace MWRender
         source << kPassHeader;
         for (const std::string& target : sampledTargets)
             source << "uniform sampler2D " << target << ";\n";
+        for (const Fx::SamplerSpec& sampler : technique.samplers())
+            source << "uniform sampler" << sampler.mDimensions << "D " << sampler.mName << ";\n";
         for (const Fx::UniformSpec& uniform : technique.uniforms())
             source << uniform.glslDeclaration() << "\n";
         source << "\n" << technique.sharedSource() << "\n";
         source << "#line 1\n" << passSource << "\n";
         return source.str();
+    }
+
+    osg::ref_ptr<osg::Texture> PostProcessor::createSamplerTexture(const Fx::SamplerSpec& spec) const
+    {
+        if (!mResourceSystem || spec.mSource.empty())
+            return nullptr;
+        if (mVfs && !mVfs->exists(spec.mSource))
+            Log(Debug::Warning) << "Post-processing texture '" << spec.mSource << "' is not in any data folder";
+
+        osg::ref_ptr<osg::Image> image = mResourceSystem->getImageManager()->getImage(spec.mSource);
+        if (!image)
+            return nullptr;
+
+        osg::ref_ptr<osg::Texture> texture;
+        if (spec.mDimensions == 1)
+            texture = new osg::Texture1D(image);
+        else if (spec.mDimensions == 3)
+            texture = new osg::Texture3D(image);
+        else
+            texture = new osg::Texture2D(image);
+
+        // As OpenMW 0.51's sampler blocks (Technique::parseSampler there)
+        texture->setFilter(osg::Texture::MIN_FILTER, getFilter(spec.mMinFilter));
+        texture->setFilter(osg::Texture::MAG_FILTER, getFilter(spec.mMagFilter));
+        texture->setWrap(osg::Texture::WRAP_S, getWrap(spec.mWrapS));
+        texture->setWrap(osg::Texture::WRAP_T, getWrap(spec.mWrapT));
+        texture->setWrap(osg::Texture::WRAP_R, getWrap(spec.mWrapR));
+        texture->setResizeNonPowerOfTwoHint(false);
+        if (!spec.mInternalFormat.empty())
+            texture->setInternalFormat(getInternalFormat(spec.mInternalFormat));
+        if (!spec.mSourceFormat.empty())
+            texture->setSourceFormat(getSourceFormat(spec.mSourceFormat));
+        if (!spec.mSourceType.empty())
+            texture->setSourceType(getSourceType(spec.mSourceType));
+        return texture;
     }
 
     void PostProcessor::resizeTargets(int width, int height)

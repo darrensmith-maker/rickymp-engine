@@ -989,6 +989,9 @@ namespace MWRender
             }
 
             mPostProcessor->update(dt);
+
+            // effects that draw their own sun (godrays, VAIO) hide the vanilla glare, as in OpenMW 0.51
+            mSky->setSunglare(!mPostProcessor->sunglareDisabled());
         }
 
     }
