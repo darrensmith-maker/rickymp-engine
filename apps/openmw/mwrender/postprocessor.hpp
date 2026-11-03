@@ -83,6 +83,12 @@ namespace MWRender
 
         // true while an active effect asks for the vanilla sun glare to be hidden (disable_sunglare flag)
         bool sunglareDisabled() const { return mEnabled && mSunglareDisabled; }
+
+        // Point lights for effects with pass_lights (OpenMW 0.51 layout: per light three vec4, world position,
+        // diffuse colour, then constant / linear / quadratic attenuation with the radius in w)
+        static constexpr int sMaxPointLights = 40;
+        bool wantsPointLights() const { return mEnabled && mPassLights; }
+        void setPointLights(const std::vector<osg::Vec4f>& packed);
         bool transparentPostpassEnabled() const { return mTransparentPostpass; }
         float autoExposureSpeed() const { return mAutoExposureSpeed; }
 
@@ -146,6 +152,7 @@ namespace MWRender
         // GLSL the graphics driver offers (e.g. 460), read once at start; 330+ lets effects use GLSL 3.30 features
         int mDriverGLSLVersion = 120;
         bool mSunglareDisabled = false;
+        bool mPassLights = false;
         osg::observer_ptr<osg::Camera> mMainCamera;
         osg::observer_ptr<osg::Group> mRootNode;
 

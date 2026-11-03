@@ -988,6 +988,39 @@ namespace MWRender
                     world->getWeatherTransition(), world->getWindSpeed());
             }
 
+            // Point lights for effects with pass_lights (VAIO's lamp shafts), nearest to the camera first. OpenMW
+            // 0.51 fills the same buffer from the lights it draws, skipping negative lights, and stops at 39
+            // (PPLightBuffer::setLight there).
+            if (mPostProcessor->wantsPointLights())
+            {
+                const auto& lights = static_cast<SceneUtil::LightManager*>(getLightRoot())->getLights();
+                std::vector<std::pair<float, const SceneUtil::LightManager::LightSourceTransform*>> nearest;
+                nearest.reserve(lights.size());
+                for (const auto& light : lights)
+                {
+                    if (!light.mLightSource || light.mLightSource->getLight(0)->getDiffuse().x() < 0.f)
+                        continue;
+                    const osg::Vec3f offset = light.mWorldMatrix.getTrans() - osg::Vec3f(cameraPos);
+                    nearest.emplace_back(offset.length2(), &light);
+                }
+                const std::size_t count = std::min<std::size_t>(nearest.size(), PostProcessor::sMaxPointLights - 1);
+                std::partial_sort(nearest.begin(), nearest.begin() + count, nearest.end(),
+                    [](const auto& a, const auto& b) { return a.first < b.first; });
+
+                std::vector<osg::Vec4f> packed;
+                packed.reserve(count * 3);
+                for (std::size_t i = 0; i < count; ++i)
+                {
+                    const SceneUtil::LightManager::LightSourceTransform& light = *nearest[i].second;
+                    const osg::Light* osgLight = light.mLightSource->getLight(0);
+                    packed.push_back(osg::Vec4f(light.mWorldMatrix.getTrans(), 1.f));
+                    packed.push_back(osgLight->getDiffuse());
+                    packed.push_back(osg::Vec4f(osgLight->getConstantAttenuation(), osgLight->getLinearAttenuation(),
+                        osgLight->getQuadraticAttenuation(), light.mLightSource->getRadius()));
+                }
+                mPostProcessor->setPointLights(packed);
+            }
+
             mPostProcessor->update(dt);
 
             // effects that draw their own sun (godrays, VAIO) hide the vanilla glare, as in OpenMW 0.51

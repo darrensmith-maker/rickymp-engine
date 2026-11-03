@@ -158,6 +158,9 @@ namespace SceneUtil
 
         const std::vector<LightSourceViewBound>& getLightsInViewSpace(osg::Camera* camera, const osg::RefMatrix* viewMatrix, size_t frameNum);
 
+        /// Lights collected this frame, with their world transforms (RickyMP: point lights for post-processing effects)
+        const std::vector<LightSourceTransform>& getLights() const { return mLights; }
+
         osg::ref_ptr<osg::StateSet> getLightListStateSet(const LightList& lightList, size_t frameNum, const osg::RefMatrix* viewMatrix);
 
         void setSunlight(osg::ref_ptr<osg::Light> sun);

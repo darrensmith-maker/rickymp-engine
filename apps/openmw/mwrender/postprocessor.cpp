@@ -370,7 +370,8 @@ void main()
     // Everything that follows the #defines in OpenMW 0.51's pass header (components/fx/pass.cpp), in its
     // GLSL 1.20 form. The "omw" fields have 0.51's names and types (components/fx/stateupdater.hpp) and are set
     // in PostProcessor::createStateUniforms / updateDynamicUniforms and by RenderingManager. Point lights: 40, as
-    // 0.51's SceneUtil::PPLightBuffer::sMaxPPLights (three vec4 each); none are passed yet, so the count is 0.
+    // 0.51's SceneUtil::PPLightBuffer::sMaxPPLights (three vec4 each), filled by RenderingManager for effects
+    // with pass_lights (PostProcessor::setPointLights).
     const char* kPassHeader = R"GLSL(
 #define omw_In varying
 #define omw_Out varying
@@ -793,6 +794,7 @@ namespace MWRender
         clearRuntimeChain();
         mChainDirty = false;
         mSunglareDisabled = false;
+        mPassLights = false;
 
         if (!mReady || !mRootNode.valid())
             return;
@@ -836,6 +838,8 @@ namespace MWRender
 
             if (technique->flags() & Fx::Technique::Flag_Disable_SunGlare)
                 mSunglareDisabled = true;
+            if (technique->wantsLights())
+                mPassLights = true;
 
             for (const Fx::RenderTargetSpec& spec : technique->renderTargets())
                 runtimeTechnique->mTargets[spec.mName] = createTargetTexture(spec);
@@ -1415,8 +1419,8 @@ namespace MWRender
         stateUniform("sunVis")->set(1.f);
 
         osg::ref_ptr<osg::Uniform> pointLights
-            = new osg::Uniform(osg::Uniform::FLOAT_VEC4, "omw_PointLights", 120);
-        for (unsigned int i = 0; i < 120; ++i)
+            = new osg::Uniform(osg::Uniform::FLOAT_VEC4, "omw_PointLights", sMaxPointLights * 3);
+        for (unsigned int i = 0; i < sMaxPointLights * 3; ++i)
             pointLights->setElement(i, osg::Vec4f(0.f, 0.f, 0.f, 0.f));
         mStateUniforms["omw_PointLights"] = pointLights;
         mStateUniforms["omw_PointLightsCount"] = new osg::Uniform("omw_PointLightsCount", 0);
@@ -1485,6 +1489,18 @@ namespace MWRender
         if (osg::Uniform* uniform = stateUniform("weatherTransition"))
             uniform->set(transition > 0.f ? 1.f - transition : 0.f);
         if (osg::Uniform* uniform = stateUniform("windSpeed")) uniform->set(windSpeed);
+    }
+
+    void PostProcessor::setPointLights(const std::vector<osg::Vec4f>& packed)
+    {
+        osg::Uniform* lights = stateUniform("omw_PointLights");
+        osg::Uniform* count = stateUniform("omw_PointLightsCount");
+        if (!lights || !count)
+            return;
+        const unsigned int size = std::min(static_cast<unsigned int>(packed.size()), lights->getNumElements());
+        for (unsigned int i = 0; i < size; ++i)
+            lights->setElement(i, packed[i]);
+        count->set(static_cast<int>(size / 3));
     }
 
     void PostProcessor::setWaterHeight(float height)
