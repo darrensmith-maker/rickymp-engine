@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <utility>
 
+#include <osg/Capability>
 #include <osg/Fog>
 #include <osg/Depth>
 #include <osg/Group>
@@ -253,6 +254,13 @@ protected:
         stateset->addUniform(new osg::Uniform("rippleMapHalfWorldSize",
             static_cast<float>(RipplesSurface::sRTTSize) * RipplesSurface::sWorldScaleFactor * 0.5f));
 
+        // Refractive water is solid and writes depth, as in OpenMW 0.51: post-processing effects (wetworld's water
+        // reflections, ambient occlusion) need the water surface there, not the lake bed under it. Each of the two
+        // statesets gets its own Depth, so apply() can follow the refraction setting without rebuilding the water.
+        osg::ref_ptr<osg::Depth> depth = new osg::Depth;
+        depth->setWriteMask(Settings::Manager::getBool("refraction", "Water"));
+        stateset->setAttributeAndModes(depth, osg::StateAttribute::ON);
+
         if (mRipples)
         {
             stateset->addUniform(new osg::Uniform("rippleMap", 4));
@@ -279,6 +287,9 @@ protected:
 
         if (osg::Uniform* useRefractionUniform = stateset->getUniform("useRefraction"))
             useRefractionUniform->set(Settings::Manager::getBool("refraction", "Water") ? 1.0f : 0.0f);
+
+        if (osg::Depth* depth = static_cast<osg::Depth*>(stateset->getAttribute(osg::StateAttribute::DEPTH)))
+            depth->setWriteMask(Settings::Manager::getBool("refraction", "Water"));
 
         if (osg::Uniform* useActorRipplesUniform = stateset->getUniform("useActorRipples"))
             useActorRipplesUniform->set(mRipples ? 1.0f : 0.0f);
@@ -766,9 +777,17 @@ void Water::createShaderWaterStateSet(osg::Node* node, Reflection* reflection, R
     shaderStateset->setMode(GL_BLEND, osg::StateAttribute::ON);
     shaderStateset->setRenderBinDetails(MWRender::RenderBin_Water, "RenderBin");
 
+    // (WaterStateUpdater gives each frame's stateset its own Depth, writing when refraction is on)
     osg::ref_ptr<osg::Depth> depth (new osg::Depth);
     depth->setWriteMask(false);
     shaderStateset->setAttributeAndModes(depth, osg::StateAttribute::ON);
+
+    // The post-processing normals target (buffer 1, @writeNormals) takes the water's own normal unblended; blended
+    // with the ground below, it made wetworld's water reflections jitter
+    const Shader::ShaderManager::DefineMap globalDefines = shaderMgr.getGlobalDefines();
+    const auto writeNormals = globalDefines.find("writeNormals");
+    if (writeNormals != globalDefines.end() && writeNormals->second == "1")
+        shaderStateset->setAttribute(new osg::Disablei(GL_BLEND, 1));
 
     shaderStateset->setMode(GL_CULL_FACE, osg::StateAttribute::OFF);
 
