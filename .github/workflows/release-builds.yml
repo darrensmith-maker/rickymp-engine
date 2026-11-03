@@ -200,7 +200,8 @@ jobs:
           # Linker maps (every function's address) so crash dumps can be read without
           # a debugger. /MAP changes nothing in the code; removing the two programs
           # makes Ninja link them again with their maps.
-          export LINK=/MAP
+          # (-MAP, not /MAP: Git Bash would turn "/MAP" into a Windows path.)
+          export LINK=-MAP
           rm -f MSVC2022_64_Ninja/Release/tes3mp.exe MSVC2022_64_Ninja/Release/tes3mp-server.exe
 
           # Continue independent translation units after the first compiler error,
