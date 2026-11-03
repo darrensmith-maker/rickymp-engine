@@ -74,9 +74,9 @@ local function getCoreFallback(language, key)
             max_ip_clients = cBad .. "{name}" .. cDefault .. " was kicked: the server allows up to {max} clients from one IP address.\n",
             player_joined = cGood .. "{name} joined the server.\n" .. cDefault,
             player_left = cBad .. "{name} left the server.\n" .. cDefault,
-            welcome_login = cSky .. "Welcome to the server\nArenaMP, " .. cAccent .. "{name}" .. cDefault ..
+            welcome_login = cSky .. "Welcome to the server\nRickyMP, " .. cAccent .. "{name}" .. cDefault ..
                 "\nPlayers online: {count}.\nYou have {seconds} sec. to log in.\n",
-            welcome_register = cSky .. "Welcome to the server\nArenaMP, " .. cAccent .. "{name}" .. cDefault ..
+            welcome_register = cSky .. "Welcome to the server\nRickyMP, " .. cAccent .. "{name}" .. cDefault ..
                 "\nPlayers online: {count}.\nYou have {seconds} sec. to register.\n",
             chat_instructions = "[Chat - Y] [Hide chat - F5] [All available commands - /help]\n",
             startup_welcome = " \n"
