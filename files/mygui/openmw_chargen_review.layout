@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MyGUI type="Layout">
+    <Widget type="Window" skin="MW_Dialog" layer="Windows" position="0 0 780 520" align="Center" name="_Main">
+        <Widget type="TextBox" skin="HeaderText" position="14 10 520 28">
+            <Property key="Caption" value="#{arenamp=chargen.review_title}"/>
+            <Property key="TextAlign" value="Left VCenter"/>
+        </Widget>
+        <Widget type="Widget" skin="MW_HLine" position="14 42 738 2"/>
+
+        <!-- Final live character preview, intentionally frameless. -->
+        <Widget type="ImageBox" skin="ImageBox" position="14 42 248 326" name="PreviewImage"/>
+        <Widget type="TextBox" skin="SandText" position="18 372 240 62">
+            <Property key="Caption" value="#{arenamp=chargen.preview_mouse_hint}"/>
+            <Property key="TextAlign" value="Center"/>
+            <Property key="MultiLine" value="true"/>
+            <Property key="WordWrap" value="true"/>
+        </Widget>
+
+        <!-- Character identity summary. -->
+        <Widget type="Widget" skin="MW_Box" position="274 50 478 106">
+            <Widget type="TextBox" skin="SandText" position="12 10 90 20"><Property key="Caption" value="#{sName}"/></Widget>
+            <Widget type="TextBox" skin="SandTextRight" position="108 10 350 20" name="NameText"/>
+            <Widget type="TextBox" skin="SandText" position="12 34 90 20"><Property key="Caption" value="#{sRace}"/></Widget>
+            <Widget type="TextBox" skin="SandTextRight" position="108 34 350 20" name="RaceText"/>
+            <Widget type="TextBox" skin="SandText" position="12 58 90 20"><Property key="Caption" value="#{sClass}"/></Widget>
+            <Widget type="TextBox" skin="SandTextRight" position="108 58 350 20" name="ClassText"/>
+            <Widget type="TextBox" skin="SandText" position="12 82 90 20"><Property key="Caption" value="#{sBirthSign}"/></Widget>
+            <Widget type="TextBox" skin="SandTextRight" position="108 82 350 20" name="SignText"/>
+        </Widget>
+
+        <!-- Dynamic stats. -->
+        <Widget type="Widget" skin="MW_Box" position="274 164 478 68">
+            <Widget type="MWDynamicStat" skin="MW_DynamicStat_Red" position="10 6 458 18" name="Health">
+                <UserString key="ToolTipType" value="Layout"/><UserString key="ToolTipLayout" value="HealthToolTip"/><UserString key="ImageTexture_HealthImage" value="icons\k\health.dds"/><Property key="Caption" value="#{sHealth}"/>
+            </Widget>
+            <Widget type="MWDynamicStat" skin="MW_DynamicStat_Blue" position="10 25 458 18" name="Magicka">
+                <UserString key="ToolTipType" value="Layout"/><UserString key="ToolTipLayout" value="HealthToolTip"/><UserString key="ImageTexture_HealthImage" value="icons\k\magicka.dds"/><Property key="Caption" value="#{sMagic}"/>
+            </Widget>
+            <Widget type="MWDynamicStat" skin="MW_DynamicStat_Green" position="10 44 458 18" name="Fatigue">
+                <UserString key="ToolTipType" value="Layout"/><UserString key="ToolTipLayout" value="HealthToolTip"/><UserString key="ImageTexture_HealthImage" value="icons\k\fatigue.dds"/><Property key="Caption" value="#{sFatigue}"/>
+            </Widget>
+        </Widget>
+
+        <!-- Attributes. -->
+        <Widget type="Widget" skin="MW_Box" position="274 240 230 194">
+            <Widget type="TextBox" skin="HeaderText" position="8 6 214 20"><Property key="Caption" value="#{arenamp=chargen.review_attributes}"/></Widget>
+            <Widget type="MWAttribute" skin="MW_StatNameValue" position="8 30 214 18" name="Attribute0"><UserString key="ToolTipType" value="Layout"/><UserString key="ToolTipLayout" value="AttributeToolTip"/><UserString key="Caption_AttributeName" value="#{sAttributeStrength}"/><UserString key="Caption_AttributeDescription" value="#{sStrDesc}"/><UserString key="ImageTexture_AttributeImage" value="icons\k\attribute_strength.dds"/></Widget>
+            <Widget type="MWAttribute" skin="MW_StatNameValue" position="8 49 214 18" name="Attribute1"><UserString key="ToolTipType" value="Layout"/><UserString key="ToolTipLayout" value="AttributeToolTip"/><UserString key="Caption_AttributeName" value="#{sAttributeIntelligence}"/><UserString key="Caption_AttributeDescription" value="#{sIntDesc}"/><UserString key="ImageTexture_AttributeImage" value="icons\k\attribute_int.dds"/></Widget>
+            <Widget type="MWAttribute" skin="MW_StatNameValue" position="8 68 214 18" name="Attribute2"><UserString key="ToolTipType" value="Layout"/><UserString key="ToolTipLayout" value="AttributeToolTip"/><UserString key="Caption_AttributeName" value="#{sAttributeWillpower}"/><UserString key="Caption_AttributeDescription" value="#{sWilDesc}"/><UserString key="ImageTexture_AttributeImage" value="icons\k\attribute_wilpower.dds"/></Widget>
+            <Widget type="MWAttribute" skin="MW_StatNameValue" position="8 87 214 18" name="Attribute3"><UserString key="ToolTipType" value="Layout"/><UserString key="ToolTipLayout" value="AttributeToolTip"/><UserString key="Caption_AttributeName" value="#{sAttributeAgility}"/><UserString key="Caption_AttributeDescription" value="#{sAgiDesc}"/><UserString key="ImageTexture_AttributeImage" value="icons\k\attribute_agility.dds"/></Widget>
+            <Widget type="MWAttribute" skin="MW_StatNameValue" position="8 106 214 18" name="Attribute4"><UserString key="ToolTipType" value="Layout"/><UserString key="ToolTipLayout" value="AttributeToolTip"/><UserString key="Caption_AttributeName" value="#{sAttributeSpeed}"/><UserString key="Caption_AttributeDescription" value="#{sSpdDesc}"/><UserString key="ImageTexture_AttributeImage" value="icons\k\attribute_speed.dds"/></Widget>
+            <Widget type="MWAttribute" skin="MW_StatNameValue" position="8 125 214 18" name="Attribute5"><UserString key="ToolTipType" value="Layout"/><UserString key="ToolTipLayout" value="AttributeToolTip"/><UserString key="Caption_AttributeName" value="#{sAttributeEndurance}"/><UserString key="Caption_AttributeDescription" value="#{sEndDesc}"/><UserString key="ImageTexture_AttributeImage" value="icons\k\attribute_endurance.dds"/></Widget>
+            <Widget type="MWAttribute" skin="MW_StatNameValue" position="8 144 214 18" name="Attribute6"><UserString key="ToolTipType" value="Layout"/><UserString key="ToolTipLayout" value="AttributeToolTip"/><UserString key="Caption_AttributeName" value="#{sAttributePersonality}"/><UserString key="Caption_AttributeDescription" value="#{sPerDesc}"/><UserString key="ImageTexture_AttributeImage" value="icons\k\attribute_personality.dds"/></Widget>
+            <Widget type="MWAttribute" skin="MW_StatNameValue" position="8 163 214 18" name="Attribute7"><UserString key="ToolTipType" value="Layout"/><UserString key="ToolTipLayout" value="AttributeToolTip"/><UserString key="Caption_AttributeName" value="#{sAttributeLuck}"/><UserString key="Caption_AttributeDescription" value="#{sLucDesc}"/><UserString key="ImageTexture_AttributeImage" value="icons\k\attribute_luck.dds"/></Widget>
+        </Widget>
+
+        <!-- All skills plus race/birthsign abilities, powers and starting spells. -->
+        <Widget type="Widget" skin="MW_Box" position="512 240 240 194" name="Skills">
+            <Widget type="TextBox" skin="HeaderText" position="8 6 224 20"><Property key="Caption" value="#{arenamp=chargen.review_skills_bonuses}"/></Widget>
+            <Widget type="ScrollView" skin="MW_ScrollView" position="8 30 224 156" name="SkillView"/>
+        </Widget>
+
+        <Widget type="Widget" skin="MW_HLine" position="14 442 738 2"/>
+        <Widget type="TextBox" skin="SandText" position="14 450 108 24"><Property key="Caption" value="#{arenamp=chargen.review_edit}"/><Property key="TextAlign" value="Left VCenter"/></Widget>
+        <Widget type="Button" skin="MW_Button" position="122 448 72 28" name="NameButton"><Property key="Caption" value="#{arenamp=chargen.edit_name}"/></Widget>
+        <Widget type="Button" skin="MW_Button" position="200 448 92 28" name="RaceButton"><Property key="Caption" value="#{arenamp=chargen.edit_appearance}"/></Widget>
+        <Widget type="Button" skin="MW_Button" position="298 448 76 28" name="ClassButton"><Property key="Caption" value="#{arenamp=chargen.edit_class}"/></Widget>
+        <Widget type="Button" skin="MW_Button" position="380 448 96 28" name="SignButton"><Property key="Caption" value="#{arenamp=chargen.edit_birthsign}"/></Widget>
+        <Widget type="Button" skin="MW_Button" position="556 448 82 28" name="BackButton"><Property key="Caption" value="#{sBack}"/></Widget>
+        <Widget type="Button" skin="MW_Button" position="644 448 108 28" name="OKButton"><Property key="Caption" value="#{arenamp=chargen.confirm}"/></Widget>
+    </Widget>
+</MyGUI>

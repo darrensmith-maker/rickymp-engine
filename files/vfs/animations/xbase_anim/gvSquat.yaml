@@ -1,0 +1,5 @@
+blending_rules:
+  - from: "*"
+    to: "gvsquat"
+    easing: "sineOut"
+    duration: 1

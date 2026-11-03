@@ -1,0 +1,13 @@
+blending_rules:
+  - from: "*"
+    to: "arms*"
+    easing: "sineOut"
+    duration: 0.7
+  - from: "armsatback"
+    to: "arms*"
+    easing: "sineInOut"
+    duration: 0.7
+  - from: "armsfolded"
+    to: "armsakimbo"
+    easing: "quartInOut"
+    duration: 1.2

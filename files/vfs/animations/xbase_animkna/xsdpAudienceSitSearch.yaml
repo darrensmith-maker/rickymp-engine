@@ -1,0 +1,17 @@
+blending_rules:
+  - from: "*"
+    to: "sdpaudiencesitsearch2"
+    easing: "quartOut"
+    duration: 0.22
+  - from: "sdpaudiencesitsearch2"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.22
+  - from: "*"
+    to: "sdpaudiencesitsearch3"
+    easing: "quartOut"
+    duration: 0.22
+  - from: "sdpaudiencesitsearch3"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.22

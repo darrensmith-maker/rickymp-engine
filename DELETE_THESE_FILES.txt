@@ -1,0 +1,14 @@
+apps/openmw/mwrender/nativeeffects.cpp
+apps/openmw/mwrender/nativeeffects.hpp
+files/shaders/HDR.glsl
+files/shaders/bloom_composite.frag
+files/shaders/bloom_extract_horizontal.frag
+files/shaders/bloom_vertical.frag
+files/shaders/native_final.frag
+files/shaders/native_smaa_edge.frag
+files/shaders/native_smaa_weights.frag
+files/shaders/water_pbr_compat.glsl
+files/shaders/water_pbr_data.glsl
+files/shaders/water_pbr_fragment.glsl
+files/shaders/water_pbr_rain_ripples.glsl
+files/shaders/water_pbr_vertex.glsl

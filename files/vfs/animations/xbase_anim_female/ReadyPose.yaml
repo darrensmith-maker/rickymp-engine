@@ -1,0 +1,13 @@
+blending_rules:
+  - from: "*"
+    to: "readypose"
+    easing: "sineInOut"
+    duration: 0.7
+  - from: "idle"
+    to: "readypose"
+    easing: "quartInOut"
+    duration: 1.5
+  - from: "idlespeak*"
+    to: "readypose"
+    easing: "sineOut"
+    duration: 0.7

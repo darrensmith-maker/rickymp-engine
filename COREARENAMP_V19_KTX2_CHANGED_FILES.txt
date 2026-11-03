@@ -1,0 +1,18 @@
+CoreArenaMP v19 Native KTX2 — changed/new files relative to CoreArenaMP v18
+
+MODIFIED
+CMakeLists.txt
+apps/openmw/mwgui/loadingscreen.cpp
+components/CMakeLists.txt
+components/misc/resourcehelpers.cpp
+components/resource/imagemanager.cpp
+extern/CMakeLists.txt
+
+ADDED
+COREARENAMP_V19_KTX2.md
+COREARENAMP_V19_KTX2_CHANGED_FILES.txt
+components/resource/ktx2loader.cpp
+components/resource/ktx2loader.hpp
+tools/ArenaMP-KTX2/Convert-TexturesToKTX2.ps1
+tools/ArenaMP-KTX2/README_RU.txt
+SHA256SUMS_V19_KTX2.txt

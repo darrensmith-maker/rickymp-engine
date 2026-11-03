@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MyGUI type="Layout">
+    <Widget type="Window" skin="MW_Dialog" layer="Windows" position="0 0 780 520" align="Center" name="_Main">
+        <Widget type="TextBox" skin="HeaderText" position="14 10 500 28" name="StepTitle">
+            <Property key="Caption" value="#{arenamp=chargen.appearance}"/>
+            <Property key="TextAlign" value="Left VCenter"/>
+        </Widget>
+        <Widget type="TextBox" skin="SandText" position="664 10 88 28" name="StepCounter">
+            <Property key="Caption" value="1 / 3"/>
+            <Property key="TextAlign" value="Right VCenter"/>
+        </Widget>
+        <Widget type="Widget" skin="MW_HLine" position="14 42 738 2"/>
+
+        <!-- Page 1: race / appearance. The body intentionally has no frame. -->
+        <Widget type="Widget" skin="" position="14 50 738 402" name="AppearancePage">
+            <Widget type="ImageBox" skin="ImageBox" position="0 0 262 336" name="PreviewImage"/>
+            <Widget type="TextBox" skin="SandText" position="4 342 254 56">
+                <Property key="Caption" value="#{arenamp=chargen.preview_mouse_hint}"/>
+                <Property key="TextAlign" value="Center"/>
+                <Property key="MultiLine" value="true"/>
+                <Property key="WordWrap" value="true"/>
+            </Widget>
+
+            <Widget type="Widget" skin="MW_Box" position="276 0 462 210">
+                <Widget type="TextBox" skin="HeaderText" position="12 8 260 22"><Property key="Caption" value="#{arenamp=chargen.appearance_details}"/></Widget>
+
+                <Widget type="TextBox" skin="SandText" position="12 40 92 24"><Property key="Caption" value="#{arenamp=chargen.race}"/></Widget>
+                <Widget type="Button" skin="MW_Button" position="106 36 32 26" name="PrevRaceButton"><Property key="Caption" value="&lt;"/></Widget>
+                <Widget type="TextBox" skin="NormalText" position="144 36 260 26" name="RaceValue"><Property key="TextAlign" value="Center VCenter"/></Widget>
+                <Widget type="Button" skin="MW_Button" position="410 36 32 26" name="NextRaceButton"><Property key="Caption" value="&gt;"/></Widget>
+
+                <Widget type="TextBox" skin="SandText" position="12 72 92 24"><Property key="Caption" value="#{arenamp=chargen.gender}"/></Widget>
+                <Widget type="Button" skin="MW_Button" position="106 68 32 26" name="PrevGenderButton"><Property key="Caption" value="&lt;"/></Widget>
+                <Widget type="TextBox" skin="NormalText" position="144 68 260 26" name="GenderValue"><Property key="TextAlign" value="Center VCenter"/></Widget>
+                <Widget type="Button" skin="MW_Button" position="410 68 32 26" name="NextGenderButton"><Property key="Caption" value="&gt;"/></Widget>
+
+                <Widget type="TextBox" skin="SandText" position="12 104 92 24"><Property key="Caption" value="#{arenamp=chargen.face}"/></Widget>
+                <Widget type="Button" skin="MW_Button" position="106 100 32 26" name="PrevFaceButton"><Property key="Caption" value="&lt;"/></Widget>
+                <Widget type="TextBox" skin="NormalText" position="144 100 260 26" name="FaceValue"><Property key="TextAlign" value="Center VCenter"/></Widget>
+                <Widget type="Button" skin="MW_Button" position="410 100 32 26" name="NextFaceButton"><Property key="Caption" value="&gt;"/></Widget>
+
+                <Widget type="TextBox" skin="SandText" position="12 136 92 24"><Property key="Caption" value="#{arenamp=chargen.hair}"/></Widget>
+                <Widget type="Button" skin="MW_Button" position="106 132 32 26" name="PrevHairButton"><Property key="Caption" value="&lt;"/></Widget>
+                <Widget type="TextBox" skin="NormalText" position="144 132 260 26" name="HairValue"><Property key="TextAlign" value="Center VCenter"/></Widget>
+                <Widget type="Button" skin="MW_Button" position="410 132 32 26" name="NextHairButton"><Property key="Caption" value="&gt;"/></Widget>
+
+                <Widget type="TextBox" skin="SandText" position="12 174 92 24"><Property key="Caption" value="#{arenamp=chargen.height}"/></Widget>
+                <Widget type="ScrollBar" skin="MW_HScroll" position="106 178 336 14" name="HeightScale"/>
+            </Widget>
+
+            <Widget type="Widget" skin="MW_Box" position="276 222 462 180">
+                <Widget type="TextBox" skin="HeaderText" position="12 8 300 22"><Property key="Caption" value="#{arenamp=chargen.start_attributes}"/></Widget>
+                <Widget type="MWAttribute" skin="MW_StatNameValue" position="12 38 204 22" name="StartAttribute0"/>
+                <Widget type="MWAttribute" skin="MW_StatNameValue" position="12 64 204 22" name="StartAttribute1"/>
+                <Widget type="MWAttribute" skin="MW_StatNameValue" position="12 90 204 22" name="StartAttribute2"/>
+                <Widget type="MWAttribute" skin="MW_StatNameValue" position="12 116 204 22" name="StartAttribute3"/>
+                <Widget type="MWAttribute" skin="MW_StatNameValue" position="238 38 204 22" name="StartAttribute4"/>
+                <Widget type="MWAttribute" skin="MW_StatNameValue" position="238 64 204 22" name="StartAttribute5"/>
+                <Widget type="MWAttribute" skin="MW_StatNameValue" position="238 90 204 22" name="StartAttribute6"/>
+                <Widget type="MWAttribute" skin="MW_StatNameValue" position="238 116 204 22" name="StartAttribute7"/>
+                <Widget type="TextBox" skin="SandText" position="12 146 430 22">
+                    <Property key="Caption" value="#{arenamp=chargen.hair_unisex_hint}"/>
+                    <Property key="TextAlign" value="Center"/>
+                </Widget>
+            </Widget>
+        </Widget>
+
+        <!-- Page 2: class profile editor. -->
+        <Widget type="Widget" skin="" position="14 50 738 402" name="ClassPage">
+            <Widget type="Widget" skin="MW_Box" position="0 0 220 402">
+                <Widget type="TextBox" skin="HeaderText" position="10 8 200 22"><Property key="Caption" value="#{arenamp=chargen.profile}"/></Widget>
+                <Widget type="ListBox" skin="MW_List" position="10 36 200 226" name="ClassList"/>
+                <Widget type="TextBox" skin="SandText" position="10 270 200 20"><Property key="Caption" value="#{arenamp=chargen.random_profile}"/><Property key="TextAlign" value="Center"/></Widget>
+                <Widget type="Button" skin="MW_Button" position="10 294 60 26" name="RandomCombatButton"><Property key="Caption" value="#{arenamp=chargen.random_warrior}"/></Widget>
+                <Widget type="Button" skin="MW_Button" position="80 294 60 26" name="RandomMagicButton"><Property key="Caption" value="#{arenamp=chargen.random_mage}"/></Widget>
+                <Widget type="Button" skin="MW_Button" position="150 294 60 26" name="RandomStealthButton"><Property key="Caption" value="#{arenamp=chargen.random_thief}"/></Widget>
+                <Widget type="Button" skin="MW_Button" position="10 330 200 28" name="RandomAnyButton">
+                    <Property key="Caption" value="#{arenamp=chargen.random_any}"/>
+                </Widget>
+            </Widget>
+
+            <!-- Larger class illustration; specialization and favored attributes are one coherent block. -->
+            <Widget type="Widget" skin="MW_Box" position="232 0 506 158">
+                <Widget type="ImageBox" skin="ImageBox" position="10 8 210 108" name="ClassImage"/>
+                <Widget type="TextBox" skin="HeaderText" position="232 6 262 30" name="ClassName">
+                    <Property key="TextAlign" value="Left VCenter"/>
+                    <Property key="FontHeight" value="18"/>
+                </Widget>
+                <Widget type="TextBox" skin="HeaderText" position="232 40 94 26">
+                    <Property key="Caption" value="#{arenamp=chargen.specialization}"/>
+                    <Property key="TextAlign" value="Left VCenter"/>
+                </Widget>
+                <Widget type="Button" skin="SandTextButton" position="328 40 166 26" name="SpecializationName">
+                    <Property key="TextColour" value="0.78 0.68 0.46"/>
+                    <Property key="TextAlign" value="Left VCenter"/>
+                </Widget>
+                <Widget type="TextBox" skin="HeaderText" position="232 76 262 22"><Property key="Caption" value="#{arenamp=chargen.favored_attributes}"/><Property key="TextAlign" value="Left VCenter"/></Widget>
+                <Widget type="MWAttribute" skin="MW_StatNameButton" position="232 102 262 22" name="FavoriteAttribute0"/>
+                <Widget type="MWAttribute" skin="MW_StatNameButton" position="232 128 262 22" name="FavoriteAttribute1"/>
+            </Widget>
+
+            <Widget type="Widget" skin="MW_Box" position="232 170 247 232">
+                <Widget type="TextBox" skin="HeaderText" position="10 8 227 22"><Property key="Caption" value="#{arenamp=chargen.major_skills}"/></Widget>
+                <Widget type="MWSkill" skin="MW_StatNameButton" position="10 38 227 24" name="MajorSkill0"/>
+                <Widget type="MWSkill" skin="MW_StatNameButton" position="10 70 227 24" name="MajorSkill1"/>
+                <Widget type="MWSkill" skin="MW_StatNameButton" position="10 102 227 24" name="MajorSkill2"/>
+                <Widget type="MWSkill" skin="MW_StatNameButton" position="10 134 227 24" name="MajorSkill3"/>
+                <Widget type="MWSkill" skin="MW_StatNameButton" position="10 166 227 24" name="MajorSkill4"/>
+            </Widget>
+
+            <Widget type="Widget" skin="MW_Box" position="491 170 247 232">
+                <Widget type="TextBox" skin="HeaderText" position="10 8 227 22"><Property key="Caption" value="#{arenamp=chargen.minor_skills}"/></Widget>
+                <Widget type="MWSkill" skin="MW_StatNameButton" position="10 38 227 24" name="MinorSkill0"/>
+                <Widget type="MWSkill" skin="MW_StatNameButton" position="10 70 227 24" name="MinorSkill1"/>
+                <Widget type="MWSkill" skin="MW_StatNameButton" position="10 102 227 24" name="MinorSkill2"/>
+                <Widget type="MWSkill" skin="MW_StatNameButton" position="10 134 227 24" name="MinorSkill3"/>
+                <Widget type="MWSkill" skin="MW_StatNameButton" position="10 166 227 24" name="MinorSkill4"/>
+            </Widget>
+        </Widget>
+
+        <!-- Page 3: birthsign. -->
+        <Widget type="Widget" skin="" position="14 50 738 402" name="BirthPage">
+            <Widget type="Widget" skin="MW_Box" position="0 0 236 402">
+                <Widget type="TextBox" skin="HeaderText" position="10 8 216 22"><Property key="Caption" value="#{arenamp=chargen.birthsign}"/></Widget>
+                <Widget type="ListBox" skin="MW_List" position="10 36 216 356" name="BirthsignList"/>
+            </Widget>
+            <Widget type="Widget" skin="MW_Box" position="248 0 490 402">
+                <Widget type="ImageBox" skin="ImageBox" position="10 8 470 240" name="BirthsignImage"/>
+                <Widget type="ScrollView" skin="MW_ScrollView" position="10 256 470 136" name="SpellArea"><Property key="CanvasAlign" value="Left"/></Widget>
+            </Widget>
+        </Widget>
+
+        <Widget type="Widget" skin="MW_HLine" position="14 460 738 2"/>
+        <Widget type="Button" skin="MW_Button" position="566 474 86 28" name="BackButton"><Property key="Caption" value="#{sBack}"/></Widget>
+        <Widget type="Button" skin="MW_Button" position="662 474 90 28" name="NextButton"><Property key="Caption" value="#{sNext}"/></Widget>
+    </Widget>
+</MyGUI>

@@ -1,0 +1,21 @@
+ArenaMP Server Language Selection Fix3 validation
+
+Client:
+- Modern login persists selected RU/EN.
+- On Sign in, LocalPlayer::updateLanguage() is called.
+- ID_PLAYER_BASEINFO is re-sent before ID_GUI_MESSAGEBOX password reply.
+- Both are PlayerPacket RELIABLE_ORDERED / CHANNEL_PLAYER, preserving order.
+
+Server:
+- localization.getClientLanguage() reads tes3mp.GetLanguage(pid) first.
+- Lua Players[pid].language is synchronized from the engine flag.
+- OnPlayerConnect stores actual client language via GetClientLanguage().
+- Effective language still honors config.serverLanguage (AUTO/RU/EN).
+- Existing localization wrappers cover SendMessage, MessageBox, CustomMessageBox,
+  InputDialog, PasswordDialog and ListBox; mixed-language broadcasts are split per recipient.
+
+Static checks:
+- tes3mp.GetLanguage API exists in StatsFunctions.
+- BasePlayer::language is serialized in ID_PLAYER_BASEINFO.
+- PlayerPacket uses RELIABLE_ORDERED on CHANNEL_PLAYER.
+- XML login layout parses successfully.

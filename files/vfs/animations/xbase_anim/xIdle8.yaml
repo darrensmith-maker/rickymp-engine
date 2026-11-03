@@ -1,0 +1,9 @@
+blending_rules:
+  - from: "*"
+    to: "idle8"
+    easing: "sineInOut"
+    duration: 0.7
+  - from: "idle*"
+    to: "idle8:start"
+    easing: "sineInOut"
+    duration: 0.5

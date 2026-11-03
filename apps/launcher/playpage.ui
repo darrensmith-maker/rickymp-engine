@@ -1,0 +1,1804 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ui version="4.0">
+ <class>PlayPage</class>
+ <widget class="QWidget" name="PlayPage">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>820</width>
+    <height>620</height>
+   </rect>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QTabWidget" name="pageTabs">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="playTab">
+      <attribute name="title">
+       <string>Play</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="playTabLayout">
+       <property name="leftMargin">
+        <number>24</number>
+       </property>
+       <property name="topMargin">
+        <number>24</number>
+       </property>
+       <property name="rightMargin">
+        <number>24</number>
+       </property>
+       <property name="bottomMargin">
+        <number>18</number>
+       </property>
+       <item>
+        <spacer name="playTopSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>38</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="buildNameLayout">
+         <property name="spacing">
+          <number>12</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="buildNameLabel">
+           <property name="text">
+            <string>Build name:</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">font-size: 12pt; font-weight: 500;</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="buildNameEdit">
+           <property name="text">
+            <string>ArenaMP</string>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>320</width>
+             <height>32</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">font-size: 11pt; padding: 3px 7px;</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="buildNameSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QGridLayout" name="serverConnectionLayout">
+         <property name="horizontalSpacing">
+          <number>28</number>
+         </property>
+         <property name="verticalSpacing">
+          <number>8</number>
+         </property>
+         <item row="0" column="0">
+          <widget class="QLabel" name="serverLabel">
+           <property name="text">
+            <string>Server Address:</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">font-size: 12pt; font-weight: 500;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="portLabel">
+           <property name="text">
+            <string>Port:</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">font-size: 12pt; font-weight: 500;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLineEdit" name="serverAddressEdit">
+           <property name="minimumSize">
+            <size>
+             <width>300</width>
+             <height>32</height>
+            </size>
+           </property>
+           <property name="placeholderText">
+            <string>192.168.x.x</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">font-size: 11pt; padding: 3px 7px;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="serverPortEdit">
+           <property name="minimumSize">
+            <size>
+             <width>130</width>
+             <height>32</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>160</width>
+             <height>32</height>
+            </size>
+           </property>
+           <property name="placeholderText">
+            <string>25565</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">font-size: 11pt; padding: 3px 7px;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0" colspan="2">
+          <widget class="QCheckBox" name="autoStartServerCheckBox">
+           <property name="text">
+            <string>Host mode</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0" colspan="2">
+          <widget class="QCheckBox" name="autoRestartServerCheckBox">
+           <property name="text">
+            <string>Auto restart and backup</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0" colspan="2">
+          <widget class="QCheckBox" name="vanillaServerCheckBox">
+           <property name="text">
+            <string>Connect to vanilla-build server</string>
+           </property>
+           <property name="toolTip">
+            <string>Use the official TES3MP 0.8.1 network identity (protocol 10, commit 68954091c5) required by older non-ArenaMP servers. Content files are not changed automatically, and local auto-start is skipped in this mode.</string>
+           </property>
+           <property name="checked">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="0" colspan="2">
+          <widget class="QCheckBox" name="hideChatHistoryCheckBox">
+           <property name="text">
+            <string>Hide chat messages</string>
+           </property>
+           <property name="toolTip">
+            <string>Hide received chat messages while keeping the chat input available.</string>
+           </property>
+           <property name="checked">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <spacer name="playMiddleSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>55</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="playButtonsLayout">
+         <property name="spacing">
+          <number>30</number>
+         </property>
+         <item>
+          <spacer name="playButtonsLeftSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>30</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="playButton">
+           <property name="minimumSize">
+            <size>
+             <width>165</width>
+             <height>54</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Play</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">font-size: 17pt;</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="serverButton">
+           <property name="minimumSize">
+            <size>
+             <width>165</width>
+             <height>54</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Run Server</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">font-size: 17pt;</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="stopServerButton">
+           <property name="minimumSize">
+            <size>
+             <width>165</width>
+             <height>54</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Stop Server</string>
+           </property>
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">font-size: 15pt;</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="playButtonsRightSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>30</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <spacer name="playBottomSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>30</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="serverConsoleTab">
+      <attribute name="title">
+       <string>Server Console</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="serverConsoleTabLayout">
+       <item>
+        <widget class="QWidget" name="serverConsoleHost" native="true">
+         <layout class="QVBoxLayout" name="serverConsoleHostLayout">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="serverSettingsTab">
+      <attribute name="title">
+       <string>Server Settings</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="serverSettingsTabLayout">
+       <property name="spacing">
+        <number>6</number>
+       </property>
+       <property name="leftMargin">
+        <number>8</number>
+       </property>
+       <property name="topMargin">
+        <number>8</number>
+       </property>
+       <property name="rightMargin">
+        <number>8</number>
+       </property>
+       <property name="bottomMargin">
+        <number>6</number>
+       </property>
+       <item>
+        <layout class="QHBoxLayout" name="serverSettingsTopLayout">
+         <property name="spacing">
+          <number>6</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="serverSettingsTitleLabel">
+           <property name="styleSheet">
+            <string notr="true">font-size: 14px; font-weight: 600;</string>
+           </property>
+           <property name="text">
+            <string>Server settings editor</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacerServerSettings">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QLabel" name="serverSettingsPathLabel">
+           <property name="styleSheet">
+            <string notr="true">color: palette(mid); font-size: 11px;</string>
+           </property>
+           <property name="text">
+            <string>server/scripts/config.lua</string>
+           </property>
+           <property name="textInteractionFlags">
+            <set>Qt::TextSelectableByMouse</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="reloadServerSettingsButton">
+           <property name="text">
+            <string>Reload</string>
+           </property>
+           <property name="maximumWidth">
+            <number>80</number>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="saveServerSettingsButton">
+           <property name="text">
+            <string>Save</string>
+           </property>
+           <property name="maximumWidth">
+            <number>80</number>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QTabWidget" name="serverSettingsModeTabs">
+         <property name="currentIndex">
+          <number>0</number>
+         </property>
+         <widget class="QWidget" name="formServerSettingsTab">
+          <attribute name="title">
+           <string>Form</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="formServerSettingsTabLayout">
+           <property name="spacing">
+            <number>4</number>
+           </property>
+           <property name="leftMargin">
+            <number>4</number>
+           </property>
+           <property name="topMargin">
+            <number>6</number>
+           </property>
+           <property name="rightMargin">
+            <number>4</number>
+           </property>
+           <property name="bottomMargin">
+            <number>4</number>
+           </property>
+           <item>
+            <widget class="QScrollArea" name="serverSettingsScrollArea">
+             <property name="widgetResizable">
+              <bool>true</bool>
+             </property>
+             <property name="frameShape">
+              <enum>QFrame::NoFrame</enum>
+             </property>
+             <widget class="QWidget" name="serverSettingsScrollAreaWidgetContents">
+              <property name="geometry">
+               <rect>
+                <x>0</x>
+                <y>0</y>
+                <width>780</width>
+                <height>1100</height>
+               </rect>
+              </property>
+              <layout class="QVBoxLayout" name="serverSettingsFormLayout">
+               <property name="spacing">
+                <number>8</number>
+               </property>
+               <property name="leftMargin">
+                <number>2</number>
+               </property>
+               <property name="topMargin">
+                <number>2</number>
+               </property>
+               <property name="rightMargin">
+                <number>2</number>
+               </property>
+               <property name="bottomMargin">
+                <number>2</number>
+               </property>
+               <item>
+                <widget class="QGroupBox" name="generalSettingsGroupBox">
+                 <property name="title">
+                  <string>General</string>
+                 </property>
+                 <layout class="QGridLayout" name="generalSettingsGridLayout">
+                  <property name="horizontalSpacing">
+                   <number>16</number>
+                  </property>
+                  <property name="verticalSpacing">
+                   <number>5</number>
+                  </property>
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_serverLanguage">
+                    <property name="text">
+                     <string>Server language</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QComboBox" name="serverLanguageComboBox">
+                    <property name="toolTip">
+                     <string>AUTO uses each client's detected language. RU or EN forces one language for every server message.</string>
+                    </property>
+                    <item>
+                     <property name="text">
+                      <string>Auto (client language)</string>
+                     </property>
+                     <property name="userData" stdset="0">
+                      <string>AUTO</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>Русский</string>
+                     </property>
+                     <property name="userData" stdset="0">
+                      <string>RU</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>English</string>
+                     </property>
+                     <property name="userData" stdset="0">
+                      <string>EN</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QLabel" name="label_gameMode">
+                    <property name="text">
+                     <string>Game mode</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QLineEdit" name="gameModeEdit">
+                    <property name="placeholderText">
+                     <string>Default</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="0">
+                   <widget class="QLabel" name="label_loginTime">
+                    <property name="text">
+                     <string>Login time (sec)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="1">
+                   <widget class="QSpinBox" name="loginTimeSpinBox">
+                    <property name="maximum">
+                     <number>3600</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="0">
+                   <widget class="QLabel" name="label_maxClientsPerIP">
+                    <property name="text">
+                     <string>Max clients per IP</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="1">
+                   <widget class="QSpinBox" name="maxClientsPerIPSpinBox">
+                    <property name="maximum">
+                     <number>128</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="4" column="0">
+                   <widget class="QLabel" name="label_difficulty">
+                    <property name="text">
+                     <string>Difficulty</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="4" column="1">
+                   <widget class="QSpinBox" name="difficultySpinBox">
+                    <property name="minimum">
+                     <number>-1000</number>
+                    </property>
+                    <property name="maximum">
+                     <number>1000</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="2">
+                   <widget class="QLabel" name="label_dataPath">
+                    <property name="text">
+                     <string>Data path</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="3">
+                   <widget class="QLineEdit" name="dataPathEdit">
+                    <property name="placeholderText">
+                     <string>Server data directory</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="2">
+                   <widget class="QLabel" name="label_databaseType">
+                    <property name="text">
+                     <string>Database type</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="3">
+                   <widget class="QComboBox" name="databaseTypeComboBox">
+                    <item>
+                     <property name="text">
+                      <string>json</string>
+                     </property>
+                     <property name="userData" stdset="0">
+                      <string>json</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>sqlite3</string>
+                     </property>
+                     <property name="userData" stdset="0">
+                      <string>sqlite3</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item row="2" column="2">
+                   <widget class="QLabel" name="label_enforcedLogLevel">
+                    <property name="text">
+                     <string>Log level</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="3">
+                   <widget class="QSpinBox" name="enforcedLogLevelSpinBox">
+                    <property name="minimum">
+                     <number>-1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>10</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="2">
+                   <widget class="QLabel" name="label_physicsFramerate">
+                    <property name="text">
+                     <string>Physics framerate</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="3">
+                   <widget class="QSpinBox" name="physicsFramerateSpinBox">
+                    <property name="maximum">
+                     <number>1000</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="5" column="0">
+                   <widget class="QCheckBox" name="ignoreScriptErrorsCheckBox">
+                    <property name="text">
+                     <string>Ignore script errors</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="4" column="2">
+                   <widget class="QCheckBox" name="enforceDataFilesCheckBox">
+                    <property name="text">
+                     <string>Enforce required data files</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="timePermissionsRow">
+                 <property name="spacing">
+                  <number>8</number>
+                 </property>
+                 <item>
+                  <widget class="QGroupBox" name="timeSettingsGroupBox">
+                   <property name="title">
+                    <string>Time and world</string>
+                   </property>
+                   <layout class="QFormLayout" name="timeSettingsFormLayout">
+                    <property name="horizontalSpacing">
+                     <number>12</number>
+                    </property>
+                    <property name="verticalSpacing">
+                     <number>5</number>
+                    </property>
+                    <item row="0" column="0">
+                     <widget class="QLabel" name="label_passTimeWhenEmpty">
+                      <property name="text">
+                       <string>Pass time when empty</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="1">
+                     <widget class="QCheckBox" name="passTimeWhenEmptyCheckBox">
+                      <property name="text">
+                       <string />
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="0">
+                     <widget class="QLabel" name="label_nightStart">
+                      <property name="text">
+                       <string>Night starts at hour</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="1">
+                     <widget class="QSpinBox" name="nightStartHourSpinBox">
+                      <property name="maximum">
+                       <number>23</number>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="2" column="0">
+                     <widget class="QLabel" name="label_nightEnd">
+                      <property name="text">
+                       <string>Night ends at hour</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="2" column="1">
+                     <widget class="QSpinBox" name="nightEndHourSpinBox">
+                      <property name="maximum">
+                       <number>23</number>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QGroupBox" name="playerPermissionsGroupBox">
+                   <property name="title">
+                    <string>Player permissions</string>
+                   </property>
+                   <layout class="QGridLayout" name="playerPermissionsGridLayout">
+                    <property name="horizontalSpacing">
+                     <number>12</number>
+                    </property>
+                    <property name="verticalSpacing">
+                     <number>5</number>
+                    </property>
+                    <item row="0" column="0">
+                     <widget class="QCheckBox" name="allowConsoleCheckBox">
+                      <property name="text">
+                       <string>Allow console</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="1">
+                     <widget class="QCheckBox" name="allowBedRestCheckBox">
+                      <property name="text">
+                       <string>Allow bed rest</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="0">
+                     <widget class="QCheckBox" name="allowWildernessRestCheckBox">
+                      <property name="text">
+                       <string>Allow wilderness rest</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="1">
+                     <widget class="QCheckBox" name="allowWaitCheckBox">
+                      <property name="text">
+                       <string>Allow wait</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="2" column="0">
+                     <widget class="QCheckBox" name="allowSuicideCommandCheckBox">
+                      <property name="text">
+                       <string>Allow /suicide</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="2" column="1">
+                     <widget class="QCheckBox" name="allowFixmeCommandCheckBox">
+                      <property name="text">
+                       <string>Allow /fixme</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="3" column="0">
+                     <widget class="QLabel" name="label_fixmeInterval">
+                      <property name="text">
+                       <string>/fixme cooldown (sec)</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="3" column="1">
+                     <widget class="QSpinBox" name="fixmeIntervalSpinBox">
+                      <property name="maximum">
+                       <number>3600</number>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="collisionNetworkRow">
+                 <property name="spacing">
+                  <number>8</number>
+                 </property>
+                 <item>
+                  <widget class="QGroupBox" name="collisionGroupBox">
+                   <property name="title">
+                    <string>Collision</string>
+                   </property>
+                   <layout class="QGridLayout" name="collisionGridLayout">
+                    <property name="horizontalSpacing">
+                     <number>12</number>
+                    </property>
+                    <property name="verticalSpacing">
+                     <number>5</number>
+                    </property>
+                    <item row="0" column="0">
+                     <widget class="QCheckBox" name="enablePlayerCollisionCheckBox">
+                      <property name="text">
+                       <string>Player collision</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="1">
+                     <widget class="QCheckBox" name="enableActorCollisionCheckBox">
+                      <property name="text">
+                       <string>Actor collision</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="0">
+                     <widget class="QCheckBox" name="enablePlacedObjectCollisionCheckBox">
+                      <property name="text">
+                       <string>Placed object collision</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="1">
+                     <widget class="QCheckBox" name="useActorCollisionForPlacedObjectsCheckBox">
+                      <property name="text">
+                       <string>Actor-style for placed objects</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="2" column="0">
+                     <widget class="QCheckBox" name="allowOnContainerForUnloadedCellsCheckBox">
+                      <property name="text">
+                       <string>Container in unloaded cells</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QGroupBox" name="networkGroupBox">
+                   <property name="title">
+                    <string>Network and authority</string>
+                   </property>
+                   <layout class="QFormLayout" name="networkFormLayout">
+                    <property name="horizontalSpacing">
+                     <number>12</number>
+                    </property>
+                    <property name="verticalSpacing">
+                     <number>5</number>
+                    </property>
+                    <item row="0" column="0">
+                     <widget class="QLabel" name="label_pingDifference">
+                      <property name="text">
+                       <string>Authority ping difference</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="1">
+                     <widget class="QSpinBox" name="pingDifferenceSpinBox">
+                      <property name="maximum">
+                       <number>10000</number>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="QGroupBox" name="spawnAndRespawnGroupBox">
+                 <property name="title">
+                  <string>Spawn and respawn</string>
+                 </property>
+                 <layout class="QGridLayout" name="spawnAndRespawnGridLayout">
+                  <property name="horizontalSpacing">
+                   <number>16</number>
+                  </property>
+                  <property name="verticalSpacing">
+                   <number>5</number>
+                  </property>
+                  <item row="0" column="0">
+                   <widget class="QCheckBox" name="useInstancedSpawnCheckBox">
+                    <property name="text">
+                     <string>Instanced spawn</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QCheckBox" name="playersRespawnCheckBox">
+                    <property name="text">
+                     <string>Players respawn on death</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="2">
+                   <widget class="QCheckBox" name="bountyResetOnDeathCheckBox">
+                    <property name="text">
+                     <string>Reset bounty on death</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QCheckBox" name="respawnAtImperialShrineCheckBox">
+                    <property name="text">
+                     <string>Respawn at Imperial shrine</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QCheckBox" name="respawnAtTribunalTempleCheckBox">
+                    <property name="text">
+                     <string>Respawn at Tribunal temple</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="2">
+                   <widget class="QCheckBox" name="bountyDeathPenaltyCheckBox">
+                    <property name="text">
+                     <string>Jail time based on bounty</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="0">
+                   <widget class="QLabel" name="label_deathTime">
+                    <property name="text">
+                     <string>Death time (sec)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="1">
+                   <widget class="QSpinBox" name="deathTimeSpinBox">
+                    <property name="maximum">
+                     <number>3600</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="0">
+                   <widget class="QLabel" name="label_deathPenaltyJailDays">
+                    <property name="text">
+                     <string>Death penalty jail days</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="1">
+                   <widget class="QSpinBox" name="deathPenaltyJailDaysSpinBox">
+                    <property name="maximum">
+                     <number>3650</number>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <widget class="QGroupBox" name="arenaMechanicsGroupBox">
+                 <property name="title">
+                  <string>ArenaMP NPC and combat mechanics</string>
+                 </property>
+                 <layout class="QGridLayout" name="arenaMechanicsGridLayout">
+                  <property name="horizontalSpacing"><number>16</number></property>
+                  <property name="verticalSpacing"><number>5</number></property>
+                  <item row="0" column="0" colspan="2">
+                   <widget class="QCheckBox" name="arenaTacticalCombatCheckBox">
+                    <property name="text"><string>Tactical NPC combat</string></property>
+                    <property name="toolTip"><string>Enable ArenaMP strafing, circling, retreats, dodge jumps and stuck recovery while AiCombat stays active.</string></property>
+                   </widget>
+                  </item>
+                  <item row="0" column="2" colspan="2">
+                   <widget class="QCheckBox" name="arenaCombatPursuitThroughDoorsCheckBox">
+                    <property name="text"><string>Hostile NPC pursuit through doors</string></property>
+                   </widget>
+                  </item>
+                  <item row="1" column="0"><widget class="QLabel" name="label_arenaPursuitGuaranteed"><property name="text"><string>Guaranteed distance</string></property></widget></item>
+                  <item row="1" column="1"><widget class="QSpinBox" name="arenaCombatPursuitGuaranteedDistanceSpinBox"><property name="maximum"><number>100000</number></property><property name="suffix"><string> units</string></property></widget></item>
+                  <item row="1" column="2"><widget class="QLabel" name="label_arenaPursuitDoorMax"><property name="text"><string>Door maximum distance</string></property></widget></item>
+                  <item row="1" column="3"><widget class="QSpinBox" name="arenaCombatPursuitDoorMaxDistanceSpinBox"><property name="maximum"><number>100000</number></property><property name="suffix"><string> units</string></property></widget></item>
+                  <item row="2" column="0"><widget class="QLabel" name="label_arenaPursuitChance"><property name="text"><string>Minimum pursuit chance</string></property></widget></item>
+                  <item row="2" column="1"><widget class="QDoubleSpinBox" name="arenaCombatPursuitMinimumChanceDoubleSpinBox"><property name="decimals"><number>2</number></property><property name="maximum"><double>1.000000000000000</double></property><property name="singleStep"><double>0.050000000000000</double></property></widget></item>
+                  <item row="2" column="2"><widget class="QLabel" name="label_arenaPursuitMaxActors"><property name="text"><string>Maximum door pursuers</string></property></widget></item>
+                  <item row="2" column="3"><widget class="QSpinBox" name="arenaCombatPursuitMaxActorsSpinBox"><property name="maximum"><number>100</number></property></widget></item>
+                  <item row="3" column="0"><widget class="QLabel" name="label_arenaPursuitLeash"><property name="text"><string>Same-cell pursuit leash</string></property></widget></item>
+                  <item row="3" column="1"><widget class="QSpinBox" name="arenaCombatPursuitMaxDistanceSpinBox"><property name="maximum"><number>1000000</number></property><property name="specialValueText"><string>Unlimited</string></property><property name="suffix"><string> units</string></property></widget></item>
+                  <item row="3" column="2"><widget class="QLabel" name="label_arenaSheatheDelay"><property name="text"><string>Weapon sheathe delay</string></property></widget></item>
+                  <item row="3" column="3"><widget class="QDoubleSpinBox" name="arenaCombatWeaponSheatheDelayDoubleSpinBox"><property name="decimals"><number>1</number></property><property name="maximum"><double>60.000000000000000</double></property><property name="singleStep"><double>0.500000000000000</double></property><property name="suffix"><string> sec</string></property></widget></item>
+                  <item row="4" column="0" colspan="2"><widget class="QCheckBox" name="arenaFollowersAttackOnSightCheckBox"><property name="text"><string>Followers defend immediately</string></property></widget></item>
+                  <item row="4" column="2" colspan="2"><widget class="QCheckBox" name="arenaAllowActorsFollowOverWaterCheckBox"><property name="text"><string>Allow NPC following over water</string></property></widget></item>
+                  <item row="5" column="0" colspan="2"><widget class="QCheckBox" name="arenaNpcAvoidCollisionsCheckBox"><property name="text"><string>NPCs avoid collisions</string></property></widget></item>
+                  <item row="5" column="2" colspan="2"><widget class="QCheckBox" name="arenaNpcGiveWayCheckBox"><property name="text"><string>NPCs give way</string></property></widget></item>
+                  <item row="6" column="0" colspan="2"><widget class="QCheckBox" name="arenaLongBladesUseAgilityCheckBox"><property name="text"><string>Long blades use Agility scaling</string></property></widget></item>
+                  <item row="6" column="2" colspan="2"><widget class="QCheckBox" name="arenaTwoHandedAccuracyPenaltyCheckBox"><property name="text"><string>Two-handed accuracy penalty</string></property></widget></item>
+                  <item row="7" column="0" colspan="2"><widget class="QCheckBox" name="arenaStavesAccuracyBonusCheckBox"><property name="text"><string>Staves use accuracy bonus</string></property></widget></item>
+                  <item row="7" column="2" colspan="2"><widget class="QCheckBox" name="arenaSkillBooksLevelLimitCheckBox"><property name="text"><string>Skill books have level limits</string></property></widget></item>
+                  <item row="8" column="0" colspan="2"><widget class="QCheckBox" name="arenaNewConstantEffectDifficultyCheckBox"><property name="text"><string>New constant-effect difficulty</string></property></widget></item>
+                  <item row="8" column="2"><widget class="QLabel" name="label_arenaXpMultiplier"><property name="text"><string>Global XP multiplier</string></property></widget></item>
+                  <item row="8" column="3"><widget class="QDoubleSpinBox" name="arenaGlobalXpMultiplierDoubleSpinBox"><property name="decimals"><number>2</number></property><property name="minimum"><double>0.010000000000000</double></property><property name="maximum"><double>100.000000000000000</double></property><property name="singleStep"><double>0.100000000000000</double></property></widget></item>
+                  <item row="9" column="0"><widget class="QLabel" name="label_arenaActorsProcessingRange"><property name="text"><string>Actor processing range</string></property></widget></item>
+                  <item row="9" column="1"><widget class="QSpinBox" name="arenaActorsProcessingRangeSpinBox"><property name="minimum"><number>500</number></property><property name="maximum"><number>1000000</number></property><property name="suffix"><string> units</string></property></widget></item>
+                  <item row="9" column="2" colspan="2"><widget class="QCheckBox" name="arenaCanLootDuringDeathAnimationCheckBox"><property name="text"><string>Loot during death animation</string></property></widget></item>
+                  <item row="10" column="0" colspan="2"><widget class="QCheckBox" name="arenaWeaponSheathingCheckBox"><property name="text"><string>Weapon sheathing</string></property></widget></item>
+                  <item row="10" column="2" colspan="2"><widget class="QCheckBox" name="arenaShieldSheathingCheckBox"><property name="text"><string>Shield sheathing</string></property></widget></item>
+                  <item row="11" column="0" colspan="2"><widget class="QCheckBox" name="arenaGraphicHerbalismCheckBox"><property name="text"><string>Graphic herbalism</string></property></widget></item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <widget class="QGroupBox" name="sharingGroupBox">
+                 <property name="title">
+                  <string>Shared progress</string>
+                 </property>
+                 <layout class="QGridLayout" name="sharingGridLayout">
+                  <property name="horizontalSpacing">
+                   <number>16</number>
+                  </property>
+                  <property name="verticalSpacing">
+                   <number>5</number>
+                  </property>
+                  <item row="0" column="0">
+                   <widget class="QCheckBox" name="shareJournalCheckBox">
+                    <property name="text">
+                     <string>Journal</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QCheckBox" name="shareFactionRanksCheckBox">
+                    <property name="text">
+                     <string>Faction ranks</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="2">
+                   <widget class="QCheckBox" name="shareFactionExpulsionCheckBox">
+                    <property name="text">
+                     <string>Faction expulsion</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QCheckBox" name="shareFactionReputationCheckBox">
+                    <property name="text">
+                     <string>Faction reputation</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QCheckBox" name="shareTopicsCheckBox">
+                    <property name="text">
+                     <string>Dialogue topics</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="2">
+                   <widget class="QCheckBox" name="shareBountyCheckBox">
+                    <property name="text">
+                     <string>Bounty</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="0">
+                   <widget class="QCheckBox" name="shareReputationCheckBox">
+                    <property name="text">
+                     <string>Reputation</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="1">
+                   <widget class="QCheckBox" name="shareMapExplorationCheckBox">
+                    <property name="text">
+                     <string>Map exploration</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="2">
+                   <widget class="QCheckBox" name="shareVideosCheckBox">
+                    <property name="text">
+                     <string>Videos</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="0">
+                   <widget class="QCheckBox" name="shareKillsCheckBox">
+                    <property name="text">
+                     <string>Kills</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <spacer name="verticalSpacerFormBottom">
+                 <property name="orientation">
+                  <enum>Qt::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
+             </widget>
+            </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="serverSettingsFormButtonLayout">
+             <item>
+              <widget class="QPushButton" name="applyServerSettingsFormButton">
+               <property name="text">
+                <string>Apply form → raw config</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="syncServerSettingsFormButton">
+               <property name="text">
+                <string>Refresh form ← raw config</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacerFormButtons">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="rawServerSettingsTab">
+          <attribute name="title">
+           <string>Raw config.lua</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="rawServerSettingsTabLayout">
+           <property name="leftMargin">
+            <number>4</number>
+           </property>
+           <property name="topMargin">
+            <number>6</number>
+           </property>
+           <property name="rightMargin">
+            <number>4</number>
+           </property>
+           <property name="bottomMargin">
+            <number>4</number>
+           </property>
+           <item>
+            <widget class="QPlainTextEdit" name="serverSettingsEditor">
+             <property name="lineWrapMode">
+              <enum>QPlainTextEdit::NoWrap</enum>
+             </property>
+             <property name="font">
+              <font>
+               <family>Consolas</family>
+               <pointsize>9</pointsize>
+              </font>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="serverSettingsStatusLabel">
+         <property name="styleSheet">
+          <string notr="true">font-size: 11px; padding: 1px 2px;</string>
+         </property>
+         <property name="text">
+          <string />
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="graphicsPresetsTab">
+      <attribute name="title">
+       <string>Graphics Presets</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="graphicsPresetsTabLayout">
+       <property name="spacing">
+        <number>10</number>
+       </property>
+       <property name="leftMargin">
+        <number>12</number>
+       </property>
+       <property name="topMargin">
+        <number>12</number>
+       </property>
+       <property name="rightMargin">
+        <number>12</number>
+       </property>
+       <property name="bottomMargin">
+        <number>12</number>
+       </property>
+       <item>
+        <widget class="QGroupBox" name="graphicsPresetGroupBox">
+         <property name="title">
+          <string>Quality preset</string>
+         </property>
+         <layout class="QHBoxLayout" name="graphicsPresetLayout">
+          <property name="spacing">
+           <number>8</number>
+          </property>
+          <item>
+           <widget class="QPushButton" name="presetLowButton">
+            <property name="text">
+             <string>Low</string>
+            </property>
+            <property name="minimumHeight">
+             <number>44</number>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton { font-size: 12pt; font-weight: 600; border-radius: 4px; }
+QPushButton:checked { background: #2e7d32; color: white; border: 2px solid #1b5e20; }</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="presetMediumButton">
+            <property name="text">
+             <string>Medium</string>
+            </property>
+            <property name="minimumHeight">
+             <number>44</number>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton { font-size: 12pt; font-weight: 600; border-radius: 4px; }
+QPushButton:checked { background: #1565c0; color: white; border: 2px solid #0d47a1; }</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="presetHighButton">
+            <property name="text">
+             <string>High</string>
+            </property>
+            <property name="minimumHeight">
+             <number>44</number>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton { font-size: 12pt; font-weight: 600; border-radius: 4px; }
+QPushButton:checked { background: #6a1b9a; color: white; border: 2px solid #4a148c; }</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="presetUltraButton">
+            <property name="text">
+             <string>Ultra</string>
+            </property>
+            <property name="minimumHeight">
+             <number>44</number>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton { font-size: 12pt; font-weight: 600; border-radius: 4px; }
+QPushButton:checked { background: #b71c1c; color: white; border: 2px solid #7f0000; }</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="graphicsDetailColumnsLayout">
+         <property name="spacing">
+          <number>10</number>
+         </property>
+         <item>
+          <layout class="QVBoxLayout" name="graphicsLeftColumnLayout">
+           <property name="spacing">
+            <number>8</number>
+           </property>
+           <item>
+            <widget class="QGroupBox" name="renderingGroupBox">
+             <property name="title">
+              <string>Rendering</string>
+             </property>
+             <layout class="QFormLayout" name="renderingFormLayout">
+              <property name="horizontalSpacing">
+               <number>12</number>
+              </property>
+              <property name="verticalSpacing">
+               <number>6</number>
+              </property>
+              <item row="0" column="0">
+               <widget class="QLabel" name="label_renderDistance">
+                <property name="text">
+                 <string>View distance</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QSlider" name="viewDistanceSlider">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="minimum">
+                 <number>1000</number>
+                </property>
+                <property name="maximum">
+                 <number>100000</number>
+                </property>
+                <property name="singleStep">
+                 <number>1000</number>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="label_viewDistanceValue">
+                <property name="text">
+                 <string>–</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <spacer name="sp1">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="label_textureFilter">
+                <property name="text">
+                 <string>Texture filter</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="QComboBox" name="textureFilterComboBox">
+                <item>
+                 <property name="text">
+                  <string>Nearest</string>
+                 </property>
+                 <property name="userData" stdset="0">
+                  <string>nearest</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Bilinear</string>
+                 </property>
+                 <property name="userData" stdset="0">
+                  <string>linear</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Trilinear</string>
+                 </property>
+                 <property name="userData" stdset="0">
+                  <string>trilinear</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item row="3" column="0">
+               <widget class="QLabel" name="label_anisotropy">
+                <property name="text">
+                 <string>Anisotropic filter</string>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="1">
+               <widget name="anisotropySpinBox" class="QSpinBox">
+                <property name="minimum">
+                 <number>1</number>
+                </property>
+                <property name="maximum">
+                 <number>16</number>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QGroupBox" name="shadowsGroupBox">
+             <property name="title">
+              <string>Shadows</string>
+             </property>
+             <layout class="QFormLayout" name="shadowsFormLayout">
+              <property name="horizontalSpacing">
+               <number>12</number>
+              </property>
+              <property name="verticalSpacing">
+               <number>6</number>
+              </property>
+              <item row="0" column="0">
+               <widget class="QLabel" name="label_shadows">
+                <property name="text">
+                 <string>Enable shadows</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QCheckBox" name="shadowsCheckBox">
+                <property name="text">
+                 <string />
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="label_shadowRes">
+                <property name="text">
+                 <string>Shadow map size</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QComboBox" name="shadowResComboBox">
+                <item>
+                 <property name="text">
+                  <string>512</string>
+                 </property>
+                 <property name="userData" stdset="0">
+                  <string>512</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>1024</string>
+                 </property>
+                 <property name="userData" stdset="0">
+                  <string>1024</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>2048</string>
+                 </property>
+                 <property name="userData" stdset="0">
+                  <string>2048</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>4096</string>
+                 </property>
+                 <property name="userData" stdset="0">
+                  <string>4096</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="label_actorShadows">
+                <property name="text">
+                 <string>Actor shadows</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="QCheckBox" name="actorShadowsCheckBox">
+                <property name="text">
+                 <string />
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="0">
+               <widget class="QLabel" name="label_terrainShadows">
+                <property name="text">
+                 <string>Terrain shadows</string>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="1">
+               <widget class="QCheckBox" name="terrainShadowsCheckBox">
+                <property name="text">
+                 <string />
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QVBoxLayout" name="graphicsRightColumnLayout">
+           <property name="spacing">
+            <number>8</number>
+           </property>
+           <item>
+            <widget class="QGroupBox" name="waterGroupBox">
+             <property name="title">
+              <string>Water and sky</string>
+             </property>
+             <layout class="QFormLayout" name="waterFormLayout">
+              <property name="horizontalSpacing">
+               <number>12</number>
+              </property>
+              <property name="verticalSpacing">
+               <number>6</number>
+              </property>
+              <item row="0" column="0">
+               <widget class="QLabel" name="label_waterShader">
+                <property name="text">
+                 <string>Water shader</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QCheckBox" name="waterShaderCheckBox">
+                <property name="text">
+                 <string />
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="label_waterReflection">
+                <property name="text">
+                 <string>Water reflection</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QComboBox" name="waterReflectionComboBox">
+                <item>
+                 <property name="text">
+                  <string>Disabled</string>
+                 </property>
+                 <property name="userData" stdset="0">
+                  <string>0</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Low</string>
+                 </property>
+                 <property name="userData" stdset="0">
+                  <string>1</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Medium</string>
+                 </property>
+                 <property name="userData" stdset="0">
+                  <string>2</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>High</string>
+                 </property>
+                 <property name="userData" stdset="0">
+                  <string>3</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="label_fog">
+                <property name="text">
+                 <string>Use distance fog</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="QCheckBox" name="fogCheckBox">
+                <property name="text">
+                 <string />
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="0">
+               <widget class="QLabel" name="label_radialFog">
+                <property name="text">
+                 <string>Radial fog</string>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="1">
+               <widget class="QCheckBox" name="radialFogCheckBox">
+                <property name="text">
+                 <string />
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QGroupBox" name="lightingGroupBox">
+             <property name="title">
+              <string>Lighting</string>
+             </property>
+             <layout class="QFormLayout" name="lightingFormLayout">
+              <property name="horizontalSpacing">
+               <number>12</number>
+              </property>
+              <property name="verticalSpacing">
+               <number>6</number>
+              </property>
+              <item row="0" column="0">
+               <widget class="QLabel" name="label_lightingMode">
+                <property name="text">
+                 <string>Lighting method</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QComboBox" name="lightingModeComboBox">
+                <item>
+                 <property name="text">
+                  <string>Legacy</string>
+                 </property>
+                 <property name="userData" stdset="0">
+                  <string>legacy</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Shaders</string>
+                 </property>
+                 <property name="userData" stdset="0">
+                  <string>shaders compatibility</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Shaders (instanced)</string>
+                 </property>
+                 <property name="userData" stdset="0">
+                  <string>shaders</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="label_maxLights">
+                <property name="text">
+                 <string>Max lights per object</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget name="maxLightsSpinBox" class="QSpinBox">
+                <property name="minimum">
+                 <number>1</number>
+                </property>
+                <property name="maximum">
+                 <number>64</number>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="label_bloom">
+                <property name="text">
+                 <string>Bloom / postprocess</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="QCheckBox" name="bloomCheckBox">
+                <property name="text">
+                 <string />
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="0">
+               <widget class="QLabel" name="label_sunlight">
+                <property name="text">
+                 <string>Sunlight scattering</string>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="1">
+               <widget class="QCheckBox" name="sunlightScatteringCheckBox">
+                <property name="text">
+                 <string />
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="graphicsPresetActionLayout">
+         <item>
+          <widget class="QPushButton" name="applyGraphicsPresetButton">
+           <property name="text">
+            <string>Apply preset to settings.cfg</string>
+           </property>
+           <property name="minimumHeight">
+            <number>32</number>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="saveGraphicsPresetButton">
+           <property name="text">
+            <string>Save current as preset…</string>
+           </property>
+           <property name="minimumHeight">
+            <number>32</number>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="graphicsPresetSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QLabel" name="graphicsPresetStatusLabel">
+           <property name="styleSheet">
+            <string notr="true">font-size: 11px; color: palette(mid);</string>
+           </property>
+           <property name="text">
+            <string />
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources />
+ <connections />
+</ui>

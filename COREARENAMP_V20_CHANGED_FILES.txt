@@ -1,0 +1,47 @@
+ArenaMP CoreArenaMP v20 - Data Tamper Guard Only
+Base: v19 Native KTX2
+
+Changed files:
+- COREARENAMP_V20_DATA_GUARD_ONLY.txt
+- apps/openmw-mp/CoreArenaMPSecurity.cpp
+- apps/openmw-mp/Networking.cpp
+- apps/openmw-mp/Player.cpp
+- apps/openmw-mp/processors/ActorProcessor.cpp
+- apps/openmw-mp/processors/ObjectProcessor.cpp
+- apps/openmw-mp/processors/WorldstateProcessor.cpp
+- apps/openmw-mp/processors/object/ProcessorContainer.hpp
+- apps/openmw-mp/processors/object/ProcessorObjectActivate.hpp
+- apps/openmw-mp/processors/object/ProcessorObjectDialogueChoice.hpp
+- apps/openmw-mp/processors/player/ProcessorPlayerCellChange.hpp
+- apps/openmw-mp/processors/player/ProcessorPlayerPosition.hpp
+- apps/openmw/mwmp/LocalPlayer.cpp
+- apps/openmw/mwmp/LocalPlayer.hpp
+- apps/openmw/mwmp/ObjectList.cpp
+- components/openmw-mp/Packets/Actor/ActorPacket.cpp
+- components/openmw-mp/Packets/Actor/PacketActorSpellsActive.cpp
+- components/openmw-mp/Packets/BasePacket.hpp
+- components/openmw-mp/Packets/Object/ObjectPacket.cpp
+- components/openmw-mp/Packets/Object/PacketClientScriptLocal.cpp
+- components/openmw-mp/Packets/Object/PacketContainer.cpp
+- components/openmw-mp/Packets/Player/PacketPlayerAlly.cpp
+- components/openmw-mp/Packets/Player/PacketPlayerAttribute.cpp
+- components/openmw-mp/Packets/Player/PacketPlayerBook.cpp
+- components/openmw-mp/Packets/Player/PacketPlayerCellState.cpp
+- components/openmw-mp/Packets/Player/PacketPlayerCooldowns.cpp
+- components/openmw-mp/Packets/Player/PacketPlayerEquipment.cpp
+- components/openmw-mp/Packets/Player/PacketPlayerFaction.cpp
+- components/openmw-mp/Packets/Player/PacketPlayerInventory.cpp
+- components/openmw-mp/Packets/Player/PacketPlayerJournal.cpp
+- components/openmw-mp/Packets/Player/PacketPlayerQuickKeys.cpp
+- components/openmw-mp/Packets/Player/PacketPlayerSkill.cpp
+- components/openmw-mp/Packets/Player/PacketPlayerSpellbook.cpp
+- components/openmw-mp/Packets/Player/PacketPlayerSpellsActive.cpp
+- components/openmw-mp/Packets/Player/PacketPlayerStatsDynamic.cpp
+- components/openmw-mp/Packets/Player/PacketPlayerTopic.cpp
+- components/openmw-mp/Packets/Worldstate/PacketClientScriptGlobal.cpp
+- components/openmw-mp/Packets/Worldstate/PacketRecordDynamic.cpp
+- components/openmw-mp/Packets/Worldstate/PacketWorldKillCount.cpp
+- components/openmw-mp/Packets/Worldstate/PacketWorldMap.cpp
+- server/ARENAMP_CORE_VERSION.txt
+- server/COREARENAMP_SECURITY.md
+- server/scripts/CoreArenaMP_BaseScript.lua

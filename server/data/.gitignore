@@ -1,0 +1,17 @@
+# Runtime server data is mutable and must not be committed by default.
+*
+!.gitignore
+!banlist.json
+!requiredDataFiles.json
+!cell/
+!cell/.gitkeep
+!custom/
+!custom/.gitkeep
+!map/
+!map/.gitkeep
+!player/
+!player/.gitkeep
+!recordstore/
+!recordstore/.gitkeep
+!world/
+!world/.gitkeep

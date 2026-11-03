@@ -1,0 +1,5 @@
+PASS: remote fallback present
+PASS: sender actual delta detection present
+PASS: server caches direction
+PASS: teleport guard present
+PASS: no packet/protocol changes in fix files

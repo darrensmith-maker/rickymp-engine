@@ -1,0 +1,100 @@
+--- a/apps/openmw/CMakeLists.txt
++++ b/apps/openmw/CMakeLists.txt
+@@ -154,13 +154,13 @@
+ 
+ # Main executable
+ if (NOT ANDROID)
+-    openmw_add_executable(tes3mp
++    openmw_add_executable(openmw
+         ${OPENMW_FILES}
+         ${GAME} ${GAME_HEADER}
+         ${APPLE_BUNDLE_RESOURCES}
+     )
+ else ()
+-    add_library(tes3mp
++    add_library(openmw
+         SHARED
+         ${OPENMW_FILES}
+         ${GAME} ${GAME_HEADER}
+@@ -174,7 +174,7 @@
+     ${FFmpeg_INCLUDE_DIRS}
+ )
+ 
+-target_link_libraries(tes3mp
++target_link_libraries(openmw
+     # CMake's built-in OSG finder does not use pkgconfig, so we have to
+     # manually ensure the order is correct for inter-library dependencies.
+     # This only makes a difference with `-DOPENMW_USE_SYSTEM_OSG=ON -DOSG_STATIC=ON`.
+@@ -218,30 +218,30 @@
+     # We use --whole-archive because OSG plugins use registration.
+     get_whole_archive_options(_opts ${_osg_plugins_static_files})
+     target_link_options(openmw_osg_plugins INTERFACE ${_opts})
+-    target_link_libraries(tes3mp openmw_osg_plugins)
++    target_link_libraries(openmw openmw_osg_plugins)
+ 
+     if(OPENMW_USE_SYSTEM_OSG)
+         # OSG plugin pkgconfig files are missing these dependencies.
+         # https://github.com/openscenegraph/OpenSceneGraph/issues/1052
+-        target_link_libraries(tes3mp freetype jpeg png)
++        target_link_libraries(openmw freetype jpeg png)
+     endif()
+ endif(OSG_STATIC)
+ 
+ if (ANDROID)
+-    target_link_libraries(tes3mp EGL android log z)
++    target_link_libraries(openmw EGL android log z)
+ endif (ANDROID)
+ 
+ if (USE_SYSTEM_TINYXML)
+-    target_link_libraries(tes3mp ${TinyXML_LIBRARIES})
++    target_link_libraries(openmw ${TinyXML_LIBRARIES})
+ endif()
+ 
+ if (NOT UNIX)
+-target_link_libraries(tes3mp ${SDL2MAIN_LIBRARY})
++target_link_libraries(openmw ${SDL2MAIN_LIBRARY})
+ endif()
+ 
+ # Fix for not visible pthreads functions for linker with glibc 2.15
+ if (UNIX AND NOT APPLE)
+-target_link_libraries(tes3mp ${CMAKE_THREAD_LIBS_INIT})
++target_link_libraries(openmw ${CMAKE_THREAD_LIBS_INIT})
+ endif()
+ 
+ if(APPLE)
+@@ -256,24 +256,24 @@
+     configure_file("${OpenMW_BINARY_DIR}/openmw.cfg" ${BUNDLE_RESOURCES_DIR} COPYONLY)
+     configure_file("${OpenMW_BINARY_DIR}/gamecontrollerdb.txt" ${BUNDLE_RESOURCES_DIR} COPYONLY)
+ 
+-    add_custom_command(TARGET tes3mp
++    add_custom_command(TARGET openmw
+         POST_BUILD
+         COMMAND cp "${OpenMW_BINARY_DIR}/resources/version" "${BUNDLE_RESOURCES_DIR}/resources")
+ 
+     find_library(COCOA_FRAMEWORK Cocoa)
+     find_library(IOKIT_FRAMEWORK IOKit)
+-    target_link_libraries(tes3mp ${COCOA_FRAMEWORK} ${IOKIT_FRAMEWORK})
++    target_link_libraries(openmw ${COCOA_FRAMEWORK} ${IOKIT_FRAMEWORK})
+ 
+     if (FFmpeg_FOUND)
+         find_library(COREVIDEO_FRAMEWORK CoreVideo)
+         find_library(VDA_FRAMEWORK VideoDecodeAcceleration)
+-        target_link_libraries(tes3mp z ${COREVIDEO_FRAMEWORK} ${VDA_FRAMEWORK})
++        target_link_libraries(openmw z ${COREVIDEO_FRAMEWORK} ${VDA_FRAMEWORK})
+     endif()
+ endif(APPLE)
+ 
+ if (BUILD_WITH_CODE_COVERAGE)
+   add_definitions (--coverage)
+-  target_link_libraries(tes3mp gcov)
++  target_link_libraries(openmw gcov)
+ endif()
+ 
+ if (MSVC)
+@@ -284,5 +284,5 @@
+ endif (MSVC)
+ 
+ if (WIN32)
+-    INSTALL(TARGETS tes3mp RUNTIME DESTINATION ".")
++    INSTALL(TARGETS openmw RUNTIME DESTINATION ".")
+ endif (WIN32)

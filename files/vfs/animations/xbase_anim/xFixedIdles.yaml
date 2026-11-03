@@ -1,0 +1,21 @@
+blending_rules:
+  - from: "idle*"
+    to: "idle*"
+    easing: "sineInOut"
+    duration: 0.4
+  - from: "idle*:*"
+    to: "idle*"
+    easing: "sineInOut"
+    duration: 0.4
+  - from: "idlespeak"
+    to: "idle*"
+    easing: "sineOut"
+    duration: 0.7
+  - from: "arms*"
+    to: "idle*"
+    easing: "sineInOut"
+    duration: 0.7
+  - from: "pose*"
+    to: "idle*"
+    easing: "sineInOut"
+    duration: 0.7

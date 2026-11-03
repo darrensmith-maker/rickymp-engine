@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MyGUI type="Layout">
+    <Widget type="Widget" skin="" position="0 0 310 252" layer="Popup" align="Left VCenter" name="_Main">
+        <Property key="NeedKey" value="true"/>
+        <Widget type="Widget" skin="BlackBG" position="0 0 310 252" align="Stretch">
+            <Widget type="TextBox" skin="SandBrightText" position="10 7 290 22" name="Title">
+                <Property key="TextAlign" value="Center"/>
+                <Property key="Caption" value="#{arenamp=animation.title.group}"/>
+            </Widget>
+            <Widget type="ListBox" skin="MW_ListBorderless" position="7 31 296 214" name="AnimationList">
+                <Property key="NeedKey" value="true"/>
+            </Widget>
+        </Widget>
+    </Widget>
+</MyGUI>

@@ -1,0 +1,43 @@
+ArenaMP BUILD FIX22 - Instanced Cell Presence / Second-Player Crash Fix
+=====================================================================
+Base: BUILD FIX21
+
+Problem
+-------
+When two authenticated players were inside separate dynamic instances of the same
+base interior (for example:
+  Seyda Neen, Census and Excise Office - Instance for 1
+  Seyda Neen, Census and Excise Office - Instance for 555
+), revealPlayer() exchanged a complete player snapshot globally with every visible
+player. The snapshot included ID_PLAYER_CELL_CHANGE for a dynamic instance record
+that only existed on its owning client. This could create an invalid cross-instance
+DedicatedPlayer state and the second client could crash shortly after entering its
+instance.
+
+Fix
+---
+1. revealPlayer() no longer exchanges presence snapshots globally.
+2. Snapshot exchange is filtered through Player::forEachLoaded(), so it happens
+   only when the server knows both players share at least one loaded cell.
+3. If there is no shared loaded cell, the snapshot is deferred instead of creating
+   an irrelevant remote player in another private instance.
+4. ProcessorPlayerCellChange now sends authoritative ID_PLAYER_BASEINFO first in
+   both directions during a real loaded-cell overlap. This guarantees that players
+   still appear with the correct race/head/hair when they genuinely meet later.
+5. FIX21 authoritative BaseInfo protection remains unchanged.
+
+Expected server log for separate private instances
+--------------------------------------------------
+  Revealing authenticated player ...
+  - Appearance snapshot: ...
+  - No shared loaded cells; remote presence exchange deferred until cell overlap
+
+Expected server log when players actually share a loaded cell
+-------------------------------------------------------------
+  - Started information exchange with ...
+  ... ID_PLAYER_BASEINFO is sent before runtime state ...
+
+Build impact
+------------
+Server-side C++ only. Windows/Android clients already built with FIX19/FIX20/FIX21
+do not need to be rebuilt for this fix.

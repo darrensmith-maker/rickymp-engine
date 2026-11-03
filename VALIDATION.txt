@@ -1,0 +1,25 @@
+ArenaMP RENDER052 R6 cumulative + compass + server safety
+Base: e550d6988cbc3d9d1102e06a6a1bde11565b42b9
+
+Included:
+- RENDER052 cumulative through R6
+- OpenMW 0.52-style post-processing manager in ArenaMP settings
+- F3 master post-processing toggle
+- Settings-safe core defaults for legacy defaults.bin
+- .omwfx metadata is authoritative for per-effect defaults/min/max/step
+- horizontal compass detection markers and exterior->interior door markers
+- clock/location shared line below compass with time fade/reappear
+- minimap disabled by default
+- dedicated-server PlayerCellState null/uninitialized packet-controller crash fix
+
+Validation performed:
+- git diff --check: OK
+- cumulative patch applies cleanly to clean AMP(6)/e550d698: OK
+- openmw_settings_window.layout XML parse: OK
+- openmw_font.xml XML parse: OK
+- all literal Settings::Manager getters in changed C++ resolve to settings-default.cfg or injected safe defaults: OK
+- every static SettingCategory/SettingName binding in openmw_settings_window.layout resolves: OK
+- Post Processing core keys verified: enabled/chain/auto exposure speed/transparent postpass
+- Shaders antialias alpha test fallback verified
+
+Full MSVC/Android compilation was not run in this environment.

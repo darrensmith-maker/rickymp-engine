@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<MyGUI type="Layout">
+    <!-- ArenaMP cinematic dialogue: narrower and lower, with the NPC visible above it. -->
+    <Widget type="Window" skin="MW_DialogueCinematicWindow" layer="Windows" position="0 0 720 410" name="_Main">
+        <Property key="MinSize" value="620 280"/>
+
+        <Widget type="TextBox" skin="SandText" position="18 6 250 25" name="NpcName" align="Left Top HStretch">
+            <Property key="TextAlign" value="Left VCenter"/>
+            <Property key="FontHeight" value="18"/>
+            <Property key="NeedMouse" value="false"/>
+        </Widget>
+
+
+        <Widget type="ProgressBar" skin="MW_Progress_Blue" position="465 40 224 18"
+            align="Right Top" name="Disposition">
+            <Widget type="TextBox" skin="ProgressText" position="0 0 224 12" name="DispositionText" align="Stretch">
+                <Property key="NeedMouse" value="false"/>
+            </Widget>
+        </Widget>
+		
+		<Widget type="ProgressBar" skin="MW_EnergyBar_Red" position="465 10 224 18"
+            align="Right Top" name="NpcHealth">
+            <Property key="NeedMouse" value="false"/>
+            <Widget type="TextBox" skin="SandBrightText" position="0 0 224 14" name="NpcHealthText" align="Stretch">
+                <Property key="NeedMouse" value="false"/>
+                <Property key="TextAlign" value="Center"/>
+                <Property key="TextShadow" value="true"/>
+                <Property key="TextShadowColour" value="0 0 0"/>
+            </Widget>
+        </Widget>
+
+        <!-- Dialogue text pane. -->
+        <Widget type="Widget" skin="BlackBG" position="10 34 432 326" align="Stretch">
+            <Property key="Alpha" value="0.72"/>
+            <Property key="NeedMouse" value="false"/>
+        </Widget>
+        <Widget type="Widget" skin="MW_Box_Overlay" position="10 34 432 326" align="Stretch">
+            <Property key="Alpha" value="0.75"/>
+            <Property key="NeedMouse" value="false"/>
+        </Widget>
+        <Widget type="Widget" position="22 46 394 302" align="Stretch" name="HistoryViewport">
+            <Widget type="BookPage" skin="MW_BookPage" position="0 0 394 302" name="History" align="Stretch"/>
+        </Widget>
+        <Widget type="ScrollBar" skin="MW_VScroll" position="420 46 14 302" align="Right VStretch" name="VScroll">
+            <Property key="Visible" value="false"/>
+        </Widget>
+
+        <!-- Answers, actions and topics. -->
+        <Widget type="Widget" skin="BlackBG" position="420 34 274 326" align="Right Stretch">
+            <Property key="Alpha" value="0.72"/>
+            <Property key="NeedMouse" value="false"/>
+        </Widget>
+        <Widget type="Widget" skin="MW_Box_Overlay" position="420 34 274 326" align="Right Stretch">
+            <Property key="Alpha" value="0.75"/>
+            <Property key="NeedMouse" value="false"/>
+        </Widget>
+		<Widget type="ProgressBar" skin="MW_EnergyBar_Red" position="0 0 190 16"
+            align="Right Stretch" name="NpcHealth">
+            <Property key="NeedMouse" value="false"/>
+            <Widget type="TextBox" skin="SandBrightText" position="0 0 190 16" name="NpcHealthText" align="Stretch">
+                <Property key="NeedMouse" value="false"/>
+                <Property key="TextAlign" value="Center"/>
+                <Property key="TextShadow" value="true"/>
+                <Property key="TextShadowColour" value="0 0 0"/>
+            </Widget>
+        </Widget>
+
+        <Widget type="TextBox" skin="SandText" position="430 44 26 18" name="ChoicesLabel" align="Right Top">
+            <Property key="Caption" value=""/>
+            <Property key="TextAlign" value="Left VCenter"/>
+            <Property key="NeedMouse" value="false"/>
+        </Widget>
+        <Widget type="MWList" skin="MW_DialogueChoiceList" position="468 68 222 74" name="ChoicesList" align="Right Top HStretch">
+            <Property key="ItemSpacing" value="0"/>
+            <Property key="ItemMinHeight" value="18"/>
+            <Property key="SelectedPrefix" value="> "/>
+        </Widget>
+
+        <Widget type="TextBox" skin="SandText" position="468 154 222 18" name="TopicsLabel" align="Right Top">
+            <Property key="Caption" value=""/>
+            <Property key="TextAlign" value="Left VCenter"/>
+            <Property key="NeedMouse" value="false"/>
+        </Widget>
+        <Widget type="MWList" skin="MW_DialogueList" position="468 178 222 112" name="TopicsList" align="Right VStretch">
+            <Property key="ItemSpacing" value="0"/>
+            <Property key="ItemMinHeight" value="18"/>
+            <Property key="SelectedPrefix" value="> "/>
+        </Widget>
+
+        <!-- Compact clickable text, without button frames. -->
+        <Widget type="Button" skin="SandTextButton" position="615 320 60 16" name="ByeButton" align="Right Bottom">
+            <Property key="Caption" value="#{sGoodbye}"/>
+            <Property key="TextAlign" value="Left VCenter"/>
+        </Widget>
+        <Widget type="Button" skin="SandTextButtonC" position="468 320 12 16" name="UpButton" align="Right Bottom">
+            <Property key="Caption" value="&lt;"/>
+        </Widget>
+        <Widget type="Button" skin="SandTextButtonC" position="542 320 12 16" name="DownButton" align="Right Bottom">
+            <Property key="Caption" value="&gt;"/>
+        </Widget>
+        <Widget type="Button" skin="SandTextButtonC" position="498 320 24 16" name="SelectButton" align="Right Bottom">
+            <Property key="Caption" value="OK"/>
+        </Widget>
+    </Widget>
+</MyGUI>

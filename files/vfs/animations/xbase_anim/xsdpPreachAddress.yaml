@@ -1,0 +1,25 @@
+blending_rules:
+  - from: "*"
+    to: "sdppreachaddressidle"
+    easing: "quartOut"
+    duration: 0.45
+  - from: "sdppreachaddressidle"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.25
+  - from: "*"
+    to: "sdppreachaddressspeak"
+    easing: "quartOut"
+    duration: 0.25
+  - from: "sdppreachaddressspeak"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.25
+  - from: "*"
+    to: "sdppreachaddressturn"
+    easing: "quartOut"
+    duration: 0.25
+  - from: "sdppreachaddressturn"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.25

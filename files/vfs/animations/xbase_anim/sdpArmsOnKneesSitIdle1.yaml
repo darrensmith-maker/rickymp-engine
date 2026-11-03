@@ -1,0 +1,9 @@
+blending_rules:
+  - from: "*"
+    to: "sdparmsonkneessitidle1"
+    easing: "quartOut"
+    duration: 1.2
+  - from: "sdparmsonkneessitidle1"
+    to: "*"
+    easing: "quartIn"
+    duration: 1.2

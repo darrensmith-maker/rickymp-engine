@@ -1,0 +1,10 @@
+ArenaMP BUILD FIX24 static validation
+====================================
+PASS: revealPlayer path removed
+PASS: immediate presence enabled
+PASS: appearance lock decoupled from presence
+PASS: late BaseInfo protection retained
+PASS: legacy second BaseInfo request remains disabled
+PASS: rollback diagnostic present
+PASS: no merge conflict markers
+NOTE: full C++ compile/link is left to project CI/MSVC environment.

@@ -1,0 +1,9 @@
+blending_rules:
+  - from: "*"
+    to: "sdppreachscan"
+    easing: "quartOut"
+    duration: 0.25
+  - from: "sdppreachscan"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.25

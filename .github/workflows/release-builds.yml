@@ -1,0 +1,760 @@
+name: Build (Win, Linux, macOS)
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_windows:
+        description: Build Windows x64
+        type: boolean
+        default: true
+      build_linux:
+        description: Build Linux x64 / Steam Deck
+        type: boolean
+        default: true
+      build_macos_arm64:
+        description: Build macOS ARM64 (experimental)
+        type: boolean
+        default: true
+      clear_build_cache:
+        description: Ignore/refresh compiled build caches
+        type: boolean
+        default: false
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-builds-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  BUILD_TYPE: Release
+  CACHE_EPOCH: v3
+
+jobs:
+  windows-x64:
+    if: github.event_name == 'push' || inputs.build_windows
+    runs-on: windows-2022
+    timeout-minutes: 120
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.cache/ccache
+      CCACHE_MAXSIZE: 3G
+      CCACHE_COMPRESS: "true"
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      WINDOWS_CACHE_EPOCH: v2
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Validate bundled ArenaMP server core
+        run: bash CI/check-server-core.sh
+
+      - name: Restore Windows dependency downloads
+        uses: actions/cache@v5
+        with:
+          path: deps
+          key: ${{ env.WINDOWS_CACHE_EPOCH }}-windows-x64-deps-${{ hashFiles('CI/before_script.msvc.sh') }}
+          restore-keys: |
+            ${{ env.WINDOWS_CACHE_EPOCH }}-windows-x64-deps-
+
+      - name: Restore Windows incremental build tree
+        if: github.event_name != 'push' && inputs.clear_build_cache != true
+        uses: actions/cache@v5
+        with:
+          path: MSVC2022_64_Ninja
+          key: ${{ env.WINDOWS_CACHE_EPOCH }}-windows-x64-build-${{ hashFiles('CI/before_script.msvc.sh', 'CMakeLists.txt', 'cmake/**', 'components/**/CMakeLists.txt', 'apps/**/CMakeLists.txt', 'extern/**/CMakeLists.txt') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ env.WINDOWS_CACHE_EPOCH }}-windows-x64-build-${{ hashFiles('CI/before_script.msvc.sh', 'CMakeLists.txt', 'cmake/**', 'components/**/CMakeLists.txt', 'apps/**/CMakeLists.txt', 'extern/**/CMakeLists.txt') }}-
+
+      - name: Restore Windows compiler cache
+        if: github.event_name == 'push' || inputs.clear_build_cache != true
+        uses: actions/cache@v5
+        with:
+          path: .cache/ccache
+          key: ${{ env.WINDOWS_CACHE_EPOCH }}-windows-x64-ccache-${{ github.sha }}
+          restore-keys: |
+            ${{ env.WINDOWS_CACHE_EPOCH }}-windows-x64-ccache-
+
+      - name: Install Windows incremental build tools
+        shell: pwsh
+        run: |
+          # windows-2022 ships Ninja. Avoid Chocolatey Community feed outages.
+          if (-not (Get-Command ninja -ErrorAction SilentlyContinue)) {
+            throw 'Required Ninja build tool is missing from the GitHub runner image.'
+          }
+          ninja --version
+
+          # ccache is an optimization only. Download the official upstream archive
+          # and continue without compiler cache if GitHub release delivery is down.
+          $ccacheVersion = '4.13.6'
+          $ccacheSha256 = '3d7cebb05850ad704e197b3f1d3f0f924ab6c9fdfc561578e146184fe9d89380'
+          $ccacheUrl = "https://github.com/ccache/ccache/releases/download/v$ccacheVersion/ccache-$ccacheVersion-windows-x86_64.zip"
+          $ccacheZip = Join-Path $env:RUNNER_TEMP "ccache-$ccacheVersion-windows-x86_64.zip"
+          $ccacheRoot = Join-Path $env:RUNNER_TEMP "ccache-$ccacheVersion"
+          $ccacheAvailable = $false
+
+          try {
+            Invoke-WebRequest -Uri $ccacheUrl -OutFile $ccacheZip -UseBasicParsing
+            $actualSha256 = (Get-FileHash -Path $ccacheZip -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actualSha256 -ne $ccacheSha256) {
+              throw "ccache SHA-256 mismatch: expected $ccacheSha256, got $actualSha256"
+            }
+            if (Test-Path $ccacheRoot) { Remove-Item -Recurse -Force $ccacheRoot }
+            Expand-Archive -Path $ccacheZip -DestinationPath $ccacheRoot -Force
+            $ccacheExe = Get-ChildItem -Path $ccacheRoot -Filter ccache.exe -File -Recurse | Select-Object -First 1
+            if ($null -eq $ccacheExe) { throw 'ccache.exe was not found in the official release archive.' }
+            $ccacheExe.Directory.FullName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            & $ccacheExe.FullName --set-config=max_size=$env:CCACHE_MAXSIZE
+            & $ccacheExe.FullName --set-config=compression=true
+            & $ccacheExe.FullName --zero-stats
+            $ccacheAvailable = $true
+          }
+          catch {
+            Write-Warning "ccache setup failed; continuing without compiler cache. $($_.Exception.Message)"
+          }
+
+          if ($ccacheAvailable) {
+            'ARENA_USE_CCACHE=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          }
+          else {
+            'ARENA_USE_CCACHE=0' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          }
+          exit 0
+
+      - name: Prepare Windows build tree
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -rf install
+          if [[ "$GITHUB_EVENT_NAME" == "push" || "${{ inputs.clear_build_cache }}" == "true" ]]; then
+            rm -rf MSVC2022_64_Ninja
+          fi
+
+      - name: Restore source timestamps for incremental Ninja build
+        shell: bash
+        run: |
+          set -euxo pipefail
+          marker="MSVC2022_64_Ninja/.arenamp-cache-sha"
+          cached_sha=""
+
+          if [[ -f "$marker" ]]; then
+            cached_sha="$(tr -d '\r\n' < "$marker")"
+            if ! git cat-file -e "${cached_sha}^{commit}" 2>/dev/null \
+              || ! git merge-base --is-ancestor "$cached_sha" "$GITHUB_SHA"; then
+              echo "Cached Windows build tree belongs to an incompatible revision; rebuilding it safely."
+              rm -rf MSVC2022_64_Ninja
+              cached_sha=""
+            fi
+          fi
+
+          if [[ -n "$cached_sha" ]]; then
+            python CI/restore-git-mtime.py --touch-changed-since "$cached_sha"
+          else
+            python CI/restore-git-mtime.py
+          fi
+
+      - name: Configure dependencies and project
+        run: |
+          set -euxo pipefail
+          args=(
+            -c Release
+            -p x64
+            -v 2022
+            -N
+            -V
+            -i "$GITHUB_WORKSPACE/install"
+          )
+
+          if [[ "${ARENA_USE_CCACHE:-0}" == "1" ]]; then
+            args+=( -C )
+          fi
+
+          # Manual builds reuse the restored CMake/Ninja tree. CMake refreshes
+          # changed project files and Ninja rebuilds only affected targets.
+          if [[ "$GITHUB_EVENT_NAME" != "push" && "${{ inputs.clear_build_cache }}" != "true" ]]; then
+            args+=( -k )
+          fi
+
+          bash CI/before_script.msvc.sh "${args[@]}"
+
+      - name: Build
+        run: |
+          set -euxo pipefail
+
+          # before_script.msvc.sh activates VsDevCmd only inside its own shell.
+          # Ninja stores the absolute cl.exe path, but the next Actions step still
+          # needs INCLUDE/LIB/LIBPATH from the Visual Studio developer environment.
+          source MSVC2022_64_Ninja/activate_msvc.sh
+          test -n "${INCLUDE:-}"
+          test -n "${LIB:-}"
+
+          # Continue independent translation units after the first compiler error,
+          # so one CI run reports several actionable failures.
+          cmake --build MSVC2022_64_Ninja --config Release --parallel 2 -- -k 20
+          cmake --install MSVC2022_64_Ninja --config Release
+          printf '%s\n' "$GITHUB_SHA" > MSVC2022_64_Ninja/.arenamp-cache-sha
+          if command -v ccache >/dev/null 2>&1; then
+            ccache --show-stats || true
+          fi
+
+      - name: Verify Windows install tree
+        shell: pwsh
+        run: |
+          $requiredFiles = @(
+            "install\tes3mp.exe",
+            "install\tes3mp-server.exe",
+            "install\tes3mp-server-default.cfg",
+            "install\server\scripts\serverCore.lua",
+            "install\server\scripts\config.lua",
+            "install\server\data\banlist.json",
+            "install\server\data\requiredDataFiles.json",
+            "install\server\ARENAMP_CORE_VERSION.txt",
+            "install\server\lib\cjson.dll",
+            "install\server\lib\io2.dll"
+          )
+
+          foreach ($file in $requiredFiles) {
+            if (-not (Test-Path $file -PathType Leaf)) {
+              throw "Required file is missing from the final install tree: $file"
+            }
+          }
+
+          Get-Item $requiredFiles | Format-Table Name, Length, LastWriteTime
+
+      - name: Create ZIP
+        shell: pwsh
+        run: |
+          $name = "ArenaMP-Windows-x64-${{ github.ref_name }}"
+          Compress-Archive -Path "install\*" -DestinationPath "$name.zip" -Force
+
+      - name: Collect Windows diagnostics
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          mkdir -p actions-artifacts/windows-x64
+          [[ -f MSVC2022_64_Ninja/CMakeCache.txt ]] \
+            && cp MSVC2022_64_Ninja/CMakeCache.txt actions-artifacts/windows-x64/
+          ccache --show-stats > actions-artifacts/windows-x64/ccache-stats.txt 2>&1 || true
+          find MSVC2022_64_Ninja -maxdepth 3 -type f 2>/dev/null | sort \
+            > actions-artifacts/windows-x64/build-files.txt || true
+          printf 'workflow=%s\nrun_id=%s\nref=%s\ncommit=%s\nrunner_arch=%s\nrunner_os=%s\n' \
+            "$GITHUB_WORKFLOW" "$GITHUB_RUN_ID" "$GITHUB_REF" "$GITHUB_SHA" "$RUNNER_ARCH" "$RUNNER_OS" \
+            > actions-artifacts/windows-x64/BUILD_INFO.txt
+
+      - name: Publish ready Windows ZIP
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArenaMP-Windows-x64-${{ github.ref_name }}
+          path: ArenaMP-Windows-x64-${{ github.ref_name }}.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Upload Windows diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArenaMP-Windows-x64-${{ github.ref_name }}-diagnostics
+          path: actions-artifacts/windows-x64/
+          if-no-files-found: warn
+          retention-days: 14
+
+  linux-steamdeck-x64:
+    if: github.event_name == 'push' || inputs.build_linux
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.cache/ccache
+      CCACHE_MAXSIZE: 2G
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Validate bundled ArenaMP server core
+        run: bash CI/check-server-core.sh
+
+      - name: Restore Linux downloads
+        uses: actions/cache@v5
+        with:
+          path: |
+            apt-cache
+            ~/.cache/apt
+          key: ${{ env.CACHE_EPOCH }}-linux-jammy-apt-${{ hashFiles('CI/install_debian_deps.sh', '.github/workflows/release-builds.yml') }}
+          restore-keys: |
+            ${{ env.CACHE_EPOCH }}-linux-jammy-apt-
+
+      - name: Restore Linux compiler and fetched-source cache
+        if: github.event_name != 'push' && inputs.clear_build_cache != true
+        uses: actions/cache@v5
+        with:
+          path: |
+            .cache/ccache
+            build/extern/fetched
+            ${{ runner.temp }}/CrabNet
+          key: ${{ env.CACHE_EPOCH }}-linux-x64-build-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'components/**/CMakeLists.txt', 'apps/**/CMakeLists.txt', 'extern/**/CMakeLists.txt') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ env.CACHE_EPOCH }}-linux-x64-build-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'components/**/CMakeLists.txt', 'apps/**/CMakeLists.txt', 'extern/**/CMakeLists.txt') }}-
+            ${{ env.CACHE_EPOCH }}-linux-x64-build-
+
+      - name: Restore Linux ccache for Release tags
+        if: github.event_name == 'push' || inputs.clear_build_cache == true
+        uses: actions/cache@v5
+        with:
+          path: .cache/ccache
+          key: ${{ env.CACHE_EPOCH }}-linux-x64-ccache-release-${{ github.sha }}
+          restore-keys: |
+            ${{ env.CACHE_EPOCH }}-linux-x64-ccache-release-
+            ${{ env.CACHE_EPOCH }}-linux-x64-build-
+
+      - name: Install dependencies
+        run: |
+          set -euxo pipefail
+          sudo bash CI/install_debian_deps.sh gcc openmw-deps openmw-deps-dynamic
+          sudo apt-get update -yq
+          sudo apt-get install -y --no-install-recommends libluajit-5.1-dev ninja-build
+
+      - name: Prepare clean Release tree
+        if: github.event_name == 'push' || inputs.clear_build_cache == true
+        run: rm -rf build stage package actions-artifacts
+
+      - name: Build CrabNet
+        run: |
+          set -euxo pipefail
+          CRABNET_DIR="$RUNNER_TEMP/CrabNet"
+          if [ ! -d "$CRABNET_DIR/.git" ]; then
+            git clone --depth 1 https://github.com/TES3MP/CrabNet "$CRABNET_DIR"
+          else
+            git -C "$CRABNET_DIR" fetch --depth 1 origin
+            git -C "$CRABNET_DIR" reset --hard FETCH_HEAD
+          fi
+          cmake -S "$CRABNET_DIR" -B "$CRABNET_DIR/build" -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCRABNET_ENABLE_DLL=OFF \
+            -DCRABNET_ENABLE_SAMPLES=OFF
+          cmake --build "$CRABNET_DIR/build" --parallel 2
+
+          # TES3MP 0.8.x ignores the externally supplied RakNet variables in
+          # parts of the build and expects this legacy tree unconditionally.
+          rm -rf "$GITHUB_WORKSPACE/extern/raknet"
+          mkdir -p "$GITHUB_WORKSPACE/extern/raknet/include" "$GITHUB_WORKSPACE/extern/raknet/lib"
+          cp -a "$CRABNET_DIR/include/." "$GITHUB_WORKSPACE/extern/raknet/include/"
+          cp "$CRABNET_DIR/build/lib/libRakNetLibStatic.a" \
+            "$GITHUB_WORKSPACE/extern/raknet/lib/libRakNetLibStatic.a"
+          cp "$CRABNET_DIR/build/lib/libRakNetLibStatic.a" \
+            "$GITHUB_WORKSPACE/extern/raknet/lib/libRakNetLibStaticd.a"
+
+      - name: Configure
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/stage" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DUSE_SYSTEM_TINYXML=ON \
+            -DOPENMW_USE_SYSTEM_MYGUI=ON \
+            -DOPENMW_USE_SYSTEM_OSG=ON \
+            -DOPENMW_USE_SYSTEM_BULLET=ON \
+            -DRakNet_LIBRARY_RELEASE="$RUNNER_TEMP/CrabNet/build/lib/libRakNetLibStatic.a" \
+            -DRakNet_LIBRARY_DEBUG="$RUNNER_TEMP/CrabNet/build/lib/libRakNetLibStatic.a" \
+            -DRakNet_INCLUDE_DIR="$RUNNER_TEMP/CrabNet/include/raknet"
+
+      - name: Build and install
+        run: |
+          cmake --build build --parallel 2
+          cmake --install build
+          ccache --show-stats || true
+
+      - name: Create portable Steam Deck archive
+        run: |
+          set -euxo pipefail
+          name="ArenaMP-Linux-x86_64-SteamDeck-${GITHUB_REF_NAME}"
+          bash CI/linux/package-portable.sh \
+            "$GITHUB_WORKSPACE/stage" \
+            "$GITHUB_WORKSPACE/package" \
+            "$GITHUB_WORKSPACE/${name}.tar.gz"
+          test -f "$GITHUB_WORKSPACE/package/server/scripts/serverCore.lua"
+          test -f "$GITHUB_WORKSPACE/package/server/scripts/config.lua"
+          test -f "$GITHUB_WORKSPACE/package/server/data/banlist.json"
+          test -f "$GITHUB_WORKSPACE/package/server/data/requiredDataFiles.json"
+          test -f "$GITHUB_WORKSPACE/package/server/ARENAMP_CORE_VERSION.txt"
+          if find "$GITHUB_WORKSPACE/package/server" -type f -iname '*.dll' -print -quit | grep -q .; then
+            echo "Windows-only Lua modules were packaged into Linux artifact" >&2
+            exit 1
+          fi
+
+      - name: Collect Linux package and diagnostics
+        if: always()
+        run: |
+          set +e
+          mkdir -p actions-artifacts/linux-steamdeck
+          [ -f build/CMakeCache.txt ] && cp build/CMakeCache.txt actions-artifacts/linux-steamdeck/
+          ccache --show-stats > actions-artifacts/linux-steamdeck/ccache-stats.txt 2>&1 || true
+          find build -maxdepth 3 -type f 2>/dev/null | sort > actions-artifacts/linux-steamdeck/build-files.txt || true
+          printf 'workflow=%s\nrun_id=%s\nref=%s\ncommit=%s\nrunner_arch=%s\nrunner_os=%s\n' \
+            "$GITHUB_WORKFLOW" "$GITHUB_RUN_ID" "$GITHUB_REF" "$GITHUB_SHA" "$RUNNER_ARCH" "$RUNNER_OS" \
+            > actions-artifacts/linux-steamdeck/BUILD_INFO.txt
+
+      - name: Publish ready Linux tar.gz
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArenaMP-Linux-x86_64-SteamDeck-${{ github.ref_name }}
+          path: ArenaMP-Linux-x86_64-SteamDeck-${{ github.ref_name }}.tar.gz
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Upload Linux diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArenaMP-Linux-x86_64-SteamDeck-${{ github.ref_name }}-diagnostics
+          path: actions-artifacts/linux-steamdeck/
+          if-no-files-found: warn
+          retention-days: 14
+
+  macos-arm64:
+    if: (github.event_name == 'push' || inputs.build_macos_arm64) && github.repository_owner != ''
+    runs-on: macos-15
+    timeout-minutes: 240
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_CACHE: ${{ github.workspace }}/.cache/homebrew
+      MACOSX_DEPLOYMENT_TARGET: 15.0
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+      MACOS_CACHE_EPOCH: v17
+      CCACHE_DIR: ${{ github.workspace }}/.cache/ccache
+      CCACHE_MAXSIZE: 2G
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Record and verify source revision
+        run: |
+          set -euo pipefail
+          echo "event_sha=$GITHUB_SHA"
+          echo "checked_out_sha=$(git rev-parse HEAD)"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+          # Re-running an old workflow_dispatch run keeps its original event
+          # SHA. Detect that case before spending time on Homebrew/build steps.
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "${GITHUB_REF_TYPE:-}" == "branch" ]]; then
+            git fetch --no-tags origin "$GITHUB_REF_NAME"
+            latest_branch_sha="$(git rev-parse FETCH_HEAD)"
+            echo "latest_branch_sha=$latest_branch_sha"
+            if [[ "$GITHUB_SHA" != "$latest_branch_sha" ]]; then
+              echo "ERROR: This is a re-run of an outdated workflow revision." >&2
+              echo "Start a new workflow run from the current $GITHUB_REF_NAME branch." >&2
+              exit 1
+            fi
+          fi
+
+          bash CI/check-server-core.sh
+          grep -q 'ffmpeg@4' CI/macos-arm64/install-deps.sh
+          grep -q 'check-ffmpeg-cache.sh' CI/macos-arm64/configure.sh
+          grep -q 'boost::asio::io_context' apps/master/SimpleWeb/base_server.hpp
+          grep -q 'boost::asio::steady_timer' apps/master/SimpleWeb/base_server.hpp
+          grep -q 'boost::asio::ip::make_address' apps/master/SimpleWeb/base_server.hpp
+          grep -q '^#include <list>$' apps/openmw/mwstate/charactermanager.hpp
+          grep -q '^#include <string>$' apps/openmw/mwstate/charactermanager.hpp
+          if grep -R -E 'boost::asio::(io_service|deadline_timer)|address::from_string' apps/master/SimpleWeb; then
+            echo 'Legacy Boost.Asio APIs remain in the bundled SimpleWeb server.' >&2
+            exit 1
+          fi
+          grep -q 'OPENMW_OSX_USE_IMAGEIO_PLUGIN:BOOL=ON' CI/macos-arm64/configure.sh
+          grep -q -- '-DBUILD_WIZARD=ON' CI/macos-arm64/configure.sh
+          grep -q "require_cache_exact 'BUILD_WIZARD:BOOL=ON'" CI/macos-arm64/configure.sh
+          grep -q 'Contents/MacOS/openmw-wizard' CI/macos-arm64/build-package.sh
+          grep -q 'openmw-launcher openmw-wizard tes3mp' CI/macos-arm64/validate-bundle.sh
+          test -f server/scripts/serverCore.lua
+          test -f server/scripts/config.lua
+          test -f server/data/banlist.json
+          test -f server/data/requiredDataFiles.json
+          test -f server/ARENAMP_CORE_VERSION.txt
+          grep -q 'config.arenaTacticalCombat = true' server/scripts/config.lua
+          grep -q 'config.arenaCombatPursuitThroughDoors = true' server/scripts/config.lua
+          grep -q 'config.arenaCombatPursuitMinimumChance = 0.10' server/scripts/config.lua
+          grep -q 'Contents/Resources/server' CMakeLists.txt
+          grep -q 'Contents/Resources/server' cmake/CMakeLists.txt
+          if grep -F 'Contents/MacOS/server' CMakeLists.txt cmake/CMakeLists.txt; then
+            echo 'ArenaMP server data must not be installed inside Contents/MacOS.' >&2
+            exit 1
+          fi
+          grep -Fq 'QStringLiteral("../Resources")' apps/launcher/serverdialog.cpp
+          grep -Fq 'serverBaseDir.filePath(QStringLiteral("server"))' apps/launcher/serverdialog.cpp
+          grep -q 'set(OSG_PLUGIN_PREFIX_DIR "osgPlugins")' CMakeLists.txt
+          grep -q 'OSG_LIBRARY_PATH' apps/openmw/main.cpp
+          if grep -R -F 'osgPlugins-${OPENSCENEGRAPH_VERSION}' CMakeLists.txt cmake/CMakeLists.txt; then
+            echo 'Versioned OSG plugin directories with periods are not code-signing safe.' >&2
+            exit 1
+          fi
+          grep -q 'WEBP_PREFIX="$(brew --prefix webp)"' CI/macos-arm64/configure.sh
+          grep -q 'SDL3_PREFIX="$(brew --prefix sdl3)"' CI/macos-arm64/configure.sh
+          grep -Fq 'SDL3_SOURCE="$SDL3_PREFIX/lib/libSDL3.dylib"' CI/macos-arm64/build-package.sh
+          grep -Fq "install_name_tool -id '@rpath/libSDL3.dylib'" CI/macos-arm64/build-package.sh
+          grep -Fq 'ln -s ../Frameworks/libSDL3.dylib "$SDL3_MACOS_DIR/libSDL3.dylib"' CI/macos-arm64/build-package.sh
+          grep -q 'bundled sdl2-compat successfully loaded bundled SDL3' CI/macos-arm64/build-package.sh
+          grep -Fq 'SDKROOT="$(xcrun --sdk macosx --show-sdk-path)"' CI/macos-arm64/build-package.sh
+          grep -Fq 'dlopen(argv[1], RTLD_NOW | RTLD_LOCAL)' CI/macos-arm64/build-package.sh
+          if grep -Fq 'sdl2-compat)/include/SDL2' CI/macos-arm64/build-package.sh; then
+            echo 'SDL runtime probe must not depend on Homebrew SDL headers.' >&2
+            exit 1
+          fi
+          grep -q 'sdl2-compat sdl3' CI/macos-arm64/install-deps.sh
+          grep -q 'SDL3 runtime required by sdl2-compat' CI/macos-arm64/validate-bundle.sh
+          if grep -R -q 'OPENMW_OSX_SDL3_LIBRARY' CMakeLists.txt CI/macos-arm64/configure.sh; then
+            echo 'Obsolete SDL3 CMake cache deployment path is still present.' >&2
+            exit 1
+          fi
+          grep -q 'OPENMW_OSX_MYGUI_FRAMEWORK' CMakeLists.txt
+          grep -q 'DESTINATION "${APP_BUNDLE_NAME}/Contents/lib"' CMakeLists.txt
+          grep -q 'remove_staging_mygui_framework' CMakeLists.txt
+          grep -q 'OPENMW_FIXUP_INSTALL_CODE' CMakeLists.txt
+          grep -Fq 'string(CONFIGURE "${OPENMW_FIXUP_INSTALL_CODE}" OPENMW_FIXUP_INSTALL_CODE @ONLY)' CMakeLists.txt
+          bash -n CI/macos-arm64/check-install-script-syntax.sh
+          bash CI/macos-arm64/check-posix-server-paths.sh
+          bash CI/macos-arm64/check-raknet-ack-sentinel.sh
+          grep -q 'temporary MyGUI staging framework remains' CI/macos-arm64/validate-bundle.sh
+          grep -q 'macdeployqt' CI/macos-arm64/build-package.sh
+          grep -q 'sign-bundle.sh' CI/macos-arm64/build-package.sh
+          bash -n CI/macos-arm64/sign-bundle.sh
+          if grep -R -E '^[[:space:]]*codesign[[:space:]].*(--deep.*--sign|--sign.*--deep)' CI/macos-arm64/build-package.sh CI/macos-arm64/sign-bundle.sh CI/macos-arm64/validate-bundle.sh; then
+            echo 'Do not sign with codesign --deep; sign nested code explicitly from the inside out.' >&2
+            exit 1
+          fi
+          printf '%s\n' "$GITHUB_SHA" > MACOS_BUILD_REVISION.txt
+
+      - name: Verify native ARM64 runner
+        run: |
+          uname -a
+          sw_vers
+          xcodebuild -version
+          test "$(uname -m)" = "arm64"
+          xcodebuild -version | head -1 | grep -q 'Xcode 16.4'
+
+      - name: Restore Homebrew downloads
+        uses: actions/cache@v5
+        with:
+          path: .cache/homebrew
+          key: ${{ env.MACOS_CACHE_EPOCH }}-macos-arm64-brew-${{ hashFiles('CI/macos-arm64/install-deps.sh') }}
+          restore-keys: |
+            ${{ env.MACOS_CACHE_EPOCH }}-macos-arm64-brew-
+
+      - name: Restore macOS dependencies and compiler cache
+        if: github.event_name != 'push' && inputs.clear_build_cache != true
+        uses: actions/cache@v5
+        with:
+          path: |
+            .cache/ccache
+            ${{ runner.temp }}/MyGUI/install
+            ${{ runner.temp }}/MyGUI/build
+            ${{ runner.temp }}/TinyXML/install
+            ${{ runner.temp }}/TinyXML/build
+            ${{ runner.temp }}/TinyXML/source
+            ${{ runner.temp }}/CrabNet
+            build/extern/fetched
+          key: ${{ env.MACOS_CACHE_EPOCH }}-macos-arm64-build-${{ hashFiles('CI/macos-arm64/**', 'CI/patch-crabnet-macos.sh', 'CMakeLists.txt', 'cmake/**', 'apps/**/CMakeLists.txt', 'components/**/CMakeLists.txt') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ env.MACOS_CACHE_EPOCH }}-macos-arm64-build-${{ hashFiles('CI/macos-arm64/**', 'CI/patch-crabnet-macos.sh', 'CMakeLists.txt', 'cmake/**', 'apps/**/CMakeLists.txt', 'components/**/CMakeLists.txt') }}-
+            ${{ env.MACOS_CACHE_EPOCH }}-macos-arm64-build-
+
+      - name: Restore macOS ccache for Release tags
+        if: github.event_name == 'push' || inputs.clear_build_cache == true
+        uses: actions/cache@v5
+        with:
+          path: .cache/ccache
+          key: ${{ env.MACOS_CACHE_EPOCH }}-macos-arm64-ccache-release-${{ github.sha }}
+          restore-keys: |
+            ${{ env.MACOS_CACHE_EPOCH }}-macos-arm64-ccache-release-
+            ${{ env.MACOS_CACHE_EPOCH }}-macos-arm64-build-
+
+      - name: Make CI scripts executable
+        run: chmod +x CI/macos-arm64/*.sh CI/patch-crabnet-macos.sh
+
+      - name: Verify macOS dependency configuration
+        run: |
+          set -euo pipefail
+          if grep -Eq '(^|[[:space:]])bullet([[:space:]]|\\|$)' CI/macos-arm64/install-deps.sh; then
+            echo "Homebrew Bullet must not be installed on macOS; use the bundled double-precision build." >&2
+            exit 1
+          fi
+          grep -q 'OPENMW_USE_SYSTEM_BULLET:BOOL=OFF' CI/macos-arm64/configure.sh
+          grep -q 'USE_DOUBLE_PRECISION:BOOL=ON' CI/macos-arm64/configure.sh
+          grep -q 'OPENMW_OSX_USE_IMAGEIO_PLUGIN:BOOL=ON' CI/macos-arm64/configure.sh
+          grep -q -- '-DBUILD_WIZARD=ON' CI/macos-arm64/configure.sh
+          grep -q "require_cache_exact 'BUILD_WIZARD:BOOL=ON'" CI/macos-arm64/configure.sh
+          grep -q 'Contents/MacOS/openmw-wizard' CI/macos-arm64/build-package.sh
+          grep -q 'openmw-launcher openmw-wizard tes3mp' CI/macos-arm64/validate-bundle.sh
+          grep -q 'set(OSG_PLUGIN_PREFIX_DIR "osgPlugins")' CMakeLists.txt
+          grep -q 'OSG_LIBRARY_PATH' apps/openmw/main.cpp
+          if grep -R -F 'osgPlugins-${OPENSCENEGRAPH_VERSION}' CMakeLists.txt cmake/CMakeLists.txt; then
+            echo 'Versioned OSG plugin directories with periods are not code-signing safe.' >&2
+            exit 1
+          fi
+          grep -q 'OSGPlugins_DONT_FIND_DEPENDENCIES:BOOL=ON' CI/macos-arm64/configure.sh
+          grep -q 'ffmpeg@4' CI/macos-arm64/install-deps.sh
+          grep -q 'check-ffmpeg-cache.sh' CI/macos-arm64/configure.sh
+          grep -q 'open-scene-graph webp' CI/macos-arm64/install-deps.sh
+          grep -q 'WEBP_PREFIX="$(brew --prefix webp)"' CI/macos-arm64/configure.sh
+          grep -q 'SDL3_PREFIX="$(brew --prefix sdl3)"' CI/macos-arm64/configure.sh
+          grep -Fq 'SDL3_SOURCE="$SDL3_PREFIX/lib/libSDL3.dylib"' CI/macos-arm64/build-package.sh
+          grep -Fq "install_name_tool -id '@rpath/libSDL3.dylib'" CI/macos-arm64/build-package.sh
+          grep -Fq 'ln -s ../Frameworks/libSDL3.dylib "$SDL3_MACOS_DIR/libSDL3.dylib"' CI/macos-arm64/build-package.sh
+          grep -q 'bundled sdl2-compat successfully loaded bundled SDL3' CI/macos-arm64/build-package.sh
+          grep -Fq 'SDKROOT="$(xcrun --sdk macosx --show-sdk-path)"' CI/macos-arm64/build-package.sh
+          grep -Fq 'dlopen(argv[1], RTLD_NOW | RTLD_LOCAL)' CI/macos-arm64/build-package.sh
+          if grep -Fq 'sdl2-compat)/include/SDL2' CI/macos-arm64/build-package.sh; then
+            echo 'SDL runtime probe must not depend on Homebrew SDL headers.' >&2
+            exit 1
+          fi
+          grep -q 'sdl2-compat sdl3' CI/macos-arm64/install-deps.sh
+          grep -q 'SDL3 runtime required by sdl2-compat' CI/macos-arm64/validate-bundle.sh
+          if grep -R -q 'OPENMW_OSX_SDL3_LIBRARY' CMakeLists.txt CI/macos-arm64/configure.sh; then
+            echo 'Obsolete SDL3 CMake cache deployment path is still present.' >&2
+            exit 1
+          fi
+          grep -q 'OPENMW_OSX_MYGUI_FRAMEWORK' CMakeLists.txt
+          grep -q 'DESTINATION "${APP_BUNDLE_NAME}/Contents/lib"' CMakeLists.txt
+          grep -q 'remove_staging_mygui_framework' CMakeLists.txt
+          grep -q 'OPENMW_FIXUP_INSTALL_CODE' CMakeLists.txt
+          grep -Fq 'string(CONFIGURE "${OPENMW_FIXUP_INSTALL_CODE}" OPENMW_FIXUP_INSTALL_CODE @ONLY)' CMakeLists.txt
+          bash -n CI/macos-arm64/check-install-script-syntax.sh
+          bash CI/macos-arm64/check-posix-server-paths.sh
+          bash CI/macos-arm64/check-raknet-ack-sentinel.sh
+          grep -q 'temporary MyGUI staging framework remains' CI/macos-arm64/validate-bundle.sh
+          bash -n CI/macos-arm64/check-ffmpeg-cache.sh
+          if grep -q 'critical macOS dependency remains unresolved' CI/macos-arm64/configure.sh; then
+            echo 'Do not reject optional Debug *-NOTFOUND cache entries in a Release build.' >&2
+            exit 1
+          fi
+          # Validate the Release MyGUI selection directly. The exact name of an
+          # optional Debug cache variable is an implementation detail of FindMyGUI
+          # and must never gate a single-configuration Release build.
+          grep -Fq 'require_cache_exact "MyGUI_INCLUDE_DIR:PATH=' CI/macos-arm64/configure.sh
+          grep -Fq 'require_cache_exact "MyGUI_LIBRARY:FILEPATH=' CI/macos-arm64/configure.sh
+          grep -q 'OPENAL_LIBRARY:FILEPATH' CI/macos-arm64/configure.sh
+          grep -q 'macdeployqt' CI/macos-arm64/build-package.sh
+          grep -q 'sign-bundle.sh' CI/macos-arm64/build-package.sh
+          bash -n CI/macos-arm64/sign-bundle.sh
+          if grep -R -E '^[[:space:]]*codesign[[:space:]].*(--deep.*--sign|--sign.*--deep)' CI/macos-arm64/build-package.sh CI/macos-arm64/sign-bundle.sh CI/macos-arm64/validate-bundle.sh; then
+            echo 'Do not sign with codesign --deep; sign nested code explicitly from the inside out.' >&2
+            exit 1
+          fi
+          grep -q 'validate-bundle.sh' CI/macos-arm64/build-package.sh
+          bash CI/macos-arm64/validate-bundle.sh --self-test
+          grep -q 'LC_ID_DYLIB' CI/macos-arm64/validate-bundle.sh
+          grep -q 'LC_LOAD_WEAK_DYLIB' CI/macos-arm64/validate-bundle.sh
+          grep -q 'sanitize-bundle.sh' CI/macos-arm64/build-package.sh
+          grep -q 'left -= 1' CI/patch-crabnet-macos.sh
+
+      - name: Install native ARM64 dependencies
+        run: bash CI/macos-arm64/install-deps.sh
+
+      - name: Verify SimpleWeb with modern Boost.Asio
+        run: bash CI/macos-arm64/check-simpleweb-modern.sh
+
+      - name: Prepare clean Release tree
+        if: github.event_name == 'push' || inputs.clear_build_cache == true
+        run: rm -rf build stage artifacts actions-artifacts
+
+      - name: Build CrabNet ARM64
+        run: |
+          set -euxo pipefail
+          CRABNET_DIR="$RUNNER_TEMP/CrabNet"
+          if [ ! -d "$CRABNET_DIR/.git" ]; then
+            git clone --depth 1 https://github.com/TES3MP/CrabNet "$CRABNET_DIR"
+          else
+            git -C "$CRABNET_DIR" fetch --depth 1 origin
+            git -C "$CRABNET_DIR" reset --hard FETCH_HEAD
+          fi
+          bash CI/patch-crabnet-macos.sh "$CRABNET_DIR"
+          cmake -S "$CRABNET_DIR" -B "$CRABNET_DIR/build" -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET="$MACOSX_DEPLOYMENT_TARGET" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCRABNET_ENABLE_DLL=OFF \
+            -DCRABNET_ENABLE_SAMPLES=OFF
+          cmake --build "$CRABNET_DIR/build" --parallel "$(sysctl -n hw.logicalcpu)"
+          CRABNET_COMMIT="$(git -C "$CRABNET_DIR" rev-parse HEAD)"
+          printf '%s\n' "$CRABNET_COMMIT" > CRABNET_BUILD_REVISION.txt
+          lipo -archs "$CRABNET_DIR/build/lib/libRakNetLibStatic.a" | tr ' ' '\n' | grep -qx arm64
+
+          # Preserve the legacy path expected by TES3MP's CMake files.
+          rm -rf "$GITHUB_WORKSPACE/extern/raknet"
+          mkdir -p "$GITHUB_WORKSPACE/extern/raknet/include" "$GITHUB_WORKSPACE/extern/raknet/lib"
+          cp -a "$CRABNET_DIR/include/." "$GITHUB_WORKSPACE/extern/raknet/include/"
+          cp "$CRABNET_DIR/build/lib/libRakNetLibStatic.a" \
+            "$GITHUB_WORKSPACE/extern/raknet/lib/libRakNetLibStatic.a"
+          cp "$CRABNET_DIR/build/lib/libRakNetLibStatic.a" \
+            "$GITHUB_WORKSPACE/extern/raknet/lib/libRakNetLibStaticd.a"
+
+      - name: Configure native ARM64 application
+        run: bash CI/macos-arm64/configure.sh
+
+      - name: Validate generated CMake install scripts
+        run: bash CI/macos-arm64/check-install-script-syntax.sh build
+
+      - name: Build and package DMG
+        run: bash CI/macos-arm64/build-package.sh
+
+      - name: Collect macOS package and diagnostics
+        if: always()
+        run: |
+          set +e
+          mkdir -p actions-artifacts/macos-arm64
+          [ -f build/CMakeCache.txt ] && cp build/CMakeCache.txt actions-artifacts/macos-arm64/
+          [ -f MACOS_BUILD_REVISION.txt ] && cp MACOS_BUILD_REVISION.txt actions-artifacts/macos-arm64/
+          [ -f CRABNET_BUILD_REVISION.txt ] && cp CRABNET_BUILD_REVISION.txt actions-artifacts/macos-arm64/
+          ccache --show-stats > actions-artifacts/macos-arm64/ccache-stats.txt 2>&1 || true
+          brew list --versions > actions-artifacts/macos-arm64/homebrew-versions.txt 2>&1 || true
+          sw_vers > actions-artifacts/macos-arm64/sw-vers.txt 2>&1 || true
+          xcodebuild -version > actions-artifacts/macos-arm64/xcode-version.txt 2>&1 || true
+          find build -type f 2>/dev/null | sort > actions-artifacts/macos-arm64/build-files.txt || true
+          find stage -print 2>/dev/null | sort > actions-artifacts/macos-arm64/stage-tree.txt || true
+          find artifacts -type f -exec shasum -a 256 {} \; \
+            > actions-artifacts/macos-arm64/artifact-sha256.txt 2>&1 || true
+          printf 'workflow=%s\nrun_id=%s\nref=%s\ncommit=%s\nchecked_out=%s\nrunner_arch=%s\nrunner_os=%s\n' \
+            "$GITHUB_WORKFLOW" "$GITHUB_RUN_ID" "$GITHUB_REF" "$GITHUB_SHA" "$(git rev-parse HEAD 2>/dev/null)" "$RUNNER_ARCH" "$RUNNER_OS" \
+            > actions-artifacts/macos-arm64/BUILD_INFO.txt
+
+      - name: Publish ready macOS DMG
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArenaMP-macOS-arm64-${{ github.ref_name }}-experimental
+          path: artifacts/*.dmg
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Upload macOS diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArenaMP-macOS-arm64-${{ github.ref_name }}-experimental-diagnostics
+          path: actions-artifacts/macos-arm64/
+          if-no-files-found: warn
+          retention-days: 14

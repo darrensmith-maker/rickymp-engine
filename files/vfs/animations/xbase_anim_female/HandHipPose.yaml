@@ -1,0 +1,17 @@
+blending_rules:
+  - from: "*"
+    to: "handhippose"
+    easing: "sineInOut"
+    duration: 0.7
+  - from: "arms*"
+    to: "handhippose"
+    easing: "sineInOut"
+    duration: 1.2
+  - from: "pose*"
+    to: "handhippose"
+    easing: "sineInOut"
+    duration: 1.2
+  - from: "idlespeak*"
+    to: "handhippose"
+    easing: "sineOut"
+    duration: 1.2

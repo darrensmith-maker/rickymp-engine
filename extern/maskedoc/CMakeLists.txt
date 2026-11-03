@@ -1,0 +1,46 @@
+include(CheckCXXCompilerFlag)
+
+set(MOC_SOURCES
+    MaskedOcclusionCulling.cpp
+)
+
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|i[3-6]86")
+    if(MSVC)
+        check_cxx_compiler_flag("/arch:AVX2" HAS_MOC_AVX2)
+        check_cxx_compiler_flag("/arch:AVX512" HAS_MOC_AVX512)
+    else()
+        check_cxx_compiler_flag("-mavx2 -mfma" HAS_MOC_AVX2)
+        check_cxx_compiler_flag("-mavx512f -mavx512bw" HAS_MOC_AVX512)
+    endif()
+
+    if(HAS_MOC_AVX2)
+        list(APPEND MOC_SOURCES MaskedOcclusionCullingAVX2.cpp)
+    endif()
+    if(HAS_MOC_AVX512)
+        list(APPEND MOC_SOURCES MaskedOcclusionCullingAVX512.cpp)
+    endif()
+endif()
+
+add_library(maskedoc STATIC ${MOC_SOURCES})
+target_include_directories(maskedoc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|i[3-6]86")
+    if(MSVC)
+        # Main file must stay at a conservative baseline.
+        set_source_files_properties(MaskedOcclusionCulling.cpp PROPERTIES COMPILE_FLAGS "/arch:SSE2")
+        if(HAS_MOC_AVX2)
+            set_source_files_properties(MaskedOcclusionCullingAVX2.cpp PROPERTIES COMPILE_FLAGS "/arch:AVX2")
+        endif()
+        if(HAS_MOC_AVX512)
+            set_source_files_properties(MaskedOcclusionCullingAVX512.cpp PROPERTIES COMPILE_FLAGS "/arch:AVX512")
+        endif()
+    else()
+        set_source_files_properties(MaskedOcclusionCulling.cpp PROPERTIES COMPILE_FLAGS "-msse4.1 -mxsave")
+        if(HAS_MOC_AVX2)
+            set_source_files_properties(MaskedOcclusionCullingAVX2.cpp PROPERTIES COMPILE_FLAGS "-mavx2 -mfma")
+        endif()
+        if(HAS_MOC_AVX512)
+            set_source_files_properties(MaskedOcclusionCullingAVX512.cpp PROPERTIES COMPILE_FLAGS "-mavx512f -mavx512bw")
+        endif()
+    endif()
+endif()

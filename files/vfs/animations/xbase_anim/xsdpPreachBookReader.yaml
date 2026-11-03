@@ -1,0 +1,25 @@
+blending_rules:
+  - from: "*"
+    to: "sdppreachbookidle"
+    easing: "quartOut"
+    duration: 0.45
+  - from: "sdppreachbookidle"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.25
+  - from: "*"
+    to: "sdppreachbooktalk"
+    easing: "quartOut"
+    duration: 0.25
+  - from: "sdppreachbooktalk"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.25
+  - from: "*"
+    to: "sdppreachbookturn"
+    easing: "quartOut"
+    duration: 0.25
+  - from: "sdppreachbookturn"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.25

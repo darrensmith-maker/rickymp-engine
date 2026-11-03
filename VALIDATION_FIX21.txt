@@ -1,0 +1,5 @@
+BUILD FIX21 validation
+- Confirmed source of wrong Dunmer overwrite from supplied server/client logs.
+- Networking.cpp differs from FIX20 only in authoritative BaseInfo handling and removal of redundant BaseInfo RequestData.
+- No packet IDs or serialization formats changed.
+- Existing FIX20 client appearance rebuild code retained unchanged.

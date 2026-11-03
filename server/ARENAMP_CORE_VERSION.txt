@@ -1,0 +1,3 @@
+ArenaMP bundled CoreScripts v16
+Source: user-provided server.zip
+TES3MP protocol: 0.8.1

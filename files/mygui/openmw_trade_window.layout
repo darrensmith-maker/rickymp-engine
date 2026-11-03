@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<MyGUI type="Layout">
+    <Widget type="Window" skin="MW_Window" layer="Windows" position="0 0 700 440" name="_Main">
+        <Property key="Visible" value="false"/>
+        <Property key="MinSize" value="500 460"/>
+
+        <!-- Same top category bar as the player inventory. -->
+        <Widget type="HBox" position="8 8 666 28" align="Left Top HStretch" name="Categories">
+            <Widget type="AutoSizedButton" skin="MW_Button" name="AllButton"><Property key="Caption" value="#{sAllTab}"/><Property key="NeedKey" value="false"/></Widget>
+            <Widget type="AutoSizedButton" skin="MW_Button" name="WeaponButton"><Property key="Caption" value="#{sWeaponTab}"/><Property key="NeedKey" value="false"/></Widget>
+            <Widget type="AutoSizedButton" skin="MW_Button" name="ApparelButton"><Property key="Caption" value="#{sApparelTab}"/><Property key="NeedKey" value="false"/></Widget>
+            <Widget type="AutoSizedButton" skin="MW_Button" name="MagicButton"><Property key="Caption" value="#{sMagicTab}"/><Property key="NeedKey" value="false"/></Widget>
+            <Widget type="AutoSizedButton" skin="MW_Button" name="MiscButton"><Property key="Caption" value="#{sMiscTab}"/><Property key="NeedKey" value="false"/></Widget>
+            <Widget type="AutoSizedButton" skin="MW_Button" name="KeysButton"><Property key="Caption" value="#{arenamp=inventory.keys}"/><Property key="NeedKey" value="false"/></Widget>
+        </Widget>
+
+        <Widget type="ItemView" skin="MW_ItemView" position="8 40 666 286" name="ItemView" align="Left Top Stretch"></Widget>
+
+        <!-- Row 1 mirrors the player bottom bar: view, transaction controls, search, own gold. -->
+        <Widget type="Widget" skin="" position="8 330 666 68" name="BottomPane" align="Left Bottom HStretch">
+            <Widget type="Button" skin="MW_Button" position="0 2 30 26" name="ViewModeButton" align="Left Top"><Property key="Caption" value=""/></Widget>
+            <Widget type="Button" skin="MW_Button" position="36 2 30 26" name="IncreaseButton" align="Left Top"><Property key="Caption" value="+"/><Property key="NeedKey" value="false"/></Widget>
+            <Widget type="NumericEditBox" skin="MW_TextEdit" position="72 2 82 26" name="TotalBalance" align="Left Top"><Property key="TextAlign" value="Center"/></Widget>
+            <Widget type="Button" skin="MW_Button" position="160 2 30 26" name="DecreaseButton" align="Left Top"><Property key="Caption" value="-"/><Property key="NeedKey" value="false"/></Widget>
+            <Widget type="EditBox" skin="MW_TextBoxEditWithBorder" position="196 2 400 26" name="FilterEdit" align="Left Top HStretch"><UserString key="AcceptTab" value="true"/></Widget>
+            <!-- Merchant gold is rendered as a compact inventory-style stack:
+                 coin icon with the amount overlaid in the lower-right corner. -->
+            <Widget type="ImageBox" skin="ImageBox" position="628 1 30 30" name="MerchantGoldIcon" align="Right Top"><Property key="NeedMouse" value="false"/></Widget>
+            <Widget type="TextBox" skin="CountText" position="628 1 30 30" name="MerchantGold" align="Right Top"><Property key="NeedMouse" value="false"/><Property key="TextAlign" value="Right Bottom"/><Property key="TextShadow" value="true"/></Widget>
+
+            <!-- Kept only for code compatibility; deliberately invisible. -->
+            <Widget type="TextBox" skin="SandText" position="0 34 1 1" name="TotalBalanceLabel" align="Left Bottom"><Property key="Visible" value="false"/></Widget>
+
+            <!-- Row 2: barter actions, lifted fully inside the window. -->
+            <Widget type="AutoSizedButton" skin="MW_Button" position="0 36 0 26" name="MaxSaleButton" align="Left Bottom"><Property key="Caption" value="#{sMaxSale}"/></Widget>
+            <Widget type="AutoSizedButton" skin="MW_Button" position="490 40 0 26" name="OfferButton" align="Right Bottom"><Property key="Caption" value="#{sBarterDialog8}"/></Widget>
+            <Widget type="AutoSizedButton" skin="MW_Button" position="590 40 0 26" name="CancelButton" align="Right Bottom"><Property key="Caption" value="#{sCancel}"/></Widget>
+        </Widget>
+    </Widget>
+</MyGUI>

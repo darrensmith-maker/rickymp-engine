@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MyGUI type="Layout">
+    <Widget type="Window" skin="MW_DialogNoTransp" layer="Windows" position="0 0 700 548" align="Center" name="_Main">
+        <Widget type="TextBox" skin="SandText" position="18 14 664 28" name="Header">
+            <Property key="TextAlign" value="Center"/>
+            <Property key="FontHeight" value="22"/>
+        </Widget>
+        <Widget type="TextBox" skin="SandText" position="18 44 664 20" name="ModeLabel">
+            <Property key="TextAlign" value="Center"/>
+        </Widget>
+
+        <Widget type="TextBox" skin="SandText" position="18 78 110 22" name="TitleLabel"/>
+        <Widget type="EditBox" skin="MW_TextBoxEditWithBorder" position="128 74 554 28" name="TitleEdit">
+            <Property key="MultiLine" value="false"/>
+            <Property key="TextAlign" value="Left VCenter"/>
+        </Widget>
+
+        <Widget type="TextBox" skin="SandText" position="18 116 110 24" name="FormatLabel"/>
+        <Widget type="Button" skin="MW_Button" position="128 112 126 28" name="BookFormatButton"/>
+        <Widget type="Button" skin="MW_Button" position="262 112 126 28" name="ScrollFormatButton"/>
+
+        <Widget type="TextBox" skin="SandText" position="18 154 110 22" name="TextLabel"/>
+        <Widget type="EditBox" skin="MW_TextBoxEditWithBorder" position="18 178 664 260" name="TextEdit">
+            <Property key="MultiLine" value="true"/>
+            <Property key="VisibleVScroll" value="true"/>
+            <Property key="WordWrap" value="true"/>
+            <Property key="TextAlign" value="Left Top"/>
+            <UserString key="AcceptTab" value="true"/>
+        </Widget>
+
+        <Widget type="TextBox" skin="SandText" position="18 444 220 20" name="Counter"/>
+        <Widget type="TextBox" skin="SandText" position="18 466 664 42" name="Materials">
+            <Property key="WordWrap" value="true"/>
+        </Widget>
+        <Widget type="TextBox" skin="SandText" position="18 508 390 24" name="Hint">
+            <Property key="TextAlign" value="Left VCenter"/>
+        </Widget>
+
+        <Widget type="Button" skin="MW_Button" position="458 506 104 28" name="SaveButton"/>
+        <Widget type="Button" skin="MW_Button" position="570 506 112 28" name="CancelButton"/>
+    </Widget>
+</MyGUI>

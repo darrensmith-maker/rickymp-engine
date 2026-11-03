@@ -1,0 +1,12 @@
+Updated patch prepared by ChatGPT.
+
+Applied critical fixes:
+- Unified occlusion settings lookups to the [Camera] section in objectpaging.cpp and objects.cpp.
+- Fixed invalid values in files/settings-default.cfg:
+  - vertex lod mod = -3
+  - composite map level = -3
+  - use distant fog = false
+- Restored the Russo font resource in files/mygui/openmw_font.xml.
+- Fixed HUD crosshair texture path to textures\crosshair.dds.
+- Hardened extern/maskedoc/CMakeLists.txt with compiler-flag detection for AVX2/AVX512.
+- Fixed malformed XML declaration in files/mygui/openmw_hud_box.skin.xml.

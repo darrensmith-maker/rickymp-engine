@@ -1,0 +1,9 @@
+blending_rules:
+  - from: "*"
+    to: "sdpaudiencesitidle3"
+    easing: "quartOut"
+    duration: 0.22
+  - from: "sdpaudiencesitidle3"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.22

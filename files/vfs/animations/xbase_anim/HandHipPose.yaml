@@ -1,0 +1,9 @@
+blending_rules:
+  - from: "*"
+    to: "handhippose:*"
+    easing: "sineInOut"
+    duration: 0.7
+  - from: "idlespeak*"
+    to: "handhippose"
+    easing: "sineOut"
+    duration: 1.2

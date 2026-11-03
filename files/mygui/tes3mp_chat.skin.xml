@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<MyGUI type="Resource" version="1.1">
+
+    <!-- Transparent text client shared by chat history and command line. -->
+    <Resource type="ResourceSkin" name="TES3MP_EditClient" size="10 10">
+        <Property key="FontName" value="Russo"/>
+        <Property key="TextAlign" value="Left Top"/>
+        <Property key="TextColour" value="1 1 1"/>
+        <BasisSkin type="EditText" offset="0 0 10 10" align="Stretch"/>
+    </Resource>
+
+    <!-- Transparent, selectable history with a scrollbar shown only in review mode. -->
+    <Resource type="ResourceSkin" name="TES3MP_ChatHistory" size="512 20">
+        <Property key="FontName" value="Russo"/>
+        <Property key="TextAlign" value="Left Top"/>
+        <Property key="TextColour" value="1 1 1"/>
+        <Property key="WordWrap" value="true"/>
+        <Property key="MultiLine" value="true"/>
+        <Property key="MaxTextLength" value="10000000"/>
+        <Property key="InvertSelected" value="false"/>
+        <Child type="TextBox" skin="TES3MP_EditClient" offset="0 0 492 20" align="Stretch" name="Client"/>
+        <Child type="ScrollBar" skin="MW_VScroll" offset="494 3 14 14" align="Right VStretch" name="VScroll"/>
+    </Resource>
+
+    <!-- Transparent command line. -->
+    <Resource type="ResourceSkin" name="TES3MP_ChatMsg" size="29 28">
+        <Child type="TextBox" skin="TES3MP_EditClient" offset="4 2 21 22" align="Bottom Stretch" name="Client"/>
+    </Resource>
+
+</MyGUI>

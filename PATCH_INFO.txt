@@ -1,0 +1,121 @@
+ArenaMP BUILD FIX13 — ArenaMW AI r3 CharGen FIX9 MP/SERVER ADAPTED
+===================================================================
+
+Source patch:
+  ArenaMW_AMW7_AI_r3_CharGen_BUILD_FIX9_ChangedFilesOnly
+  ArenaMW baseline: AMW(7), 731f005b609b37f204f974c36c57496ce5a66beb
+
+Target:
+  ArenaMP cumulative BUILD FIX12
+
+Ported CharGen:
+- modern unified Appearance / Class / Birthsign creator;
+- full-body character preview with rotate / pan / zoom;
+- FIX9 default bust framing: full head, shoulders, arms and upper torso;
+- preview framing resets after race / sex / face / hair / height changes;
+- modern class profiles, random class buttons and editable attributes/skills;
+- modern Birthsign page and final Review/Confirm screen;
+- CharGen RU/EN localization keys from ArenaMW FIX9;
+- specialization row alignment / calmer dark-gold specialization value from FIX9 layouts.
+
+ArenaMP/server adaptation:
+- GM_Name remains ArenaMP GUILogin (account name/password/language), not the SP TextInputDialog;
+- account name cannot be changed from Appearance Back or Review after the server binds it;
+- server-controlled CharGen is extended to stage 5:
+    1 Appearance -> 2 Class -> 3 Birthsign -> 4 Review -> 5 Finalize;
+- Back navigation updates LocalPlayer charGenState so the server remains authoritative;
+- review edits of Appearance/Class/Birthsign are local edits and do not desync the server stage;
+- height/scale chosen in CharGen is sent through ID_PLAYER_SHAPESHIFT before final ID_PLAYER_CHARGEN;
+- server presence gate now includes ID_PLAYER_SHAPESHIFT in the reveal snapshot, so other clients see final height immediately;
+- pre-auth / registration / CharGen invisibility from FIX10-FIX12 remains active until final Review confirmation;
+- final BaseInfo appearance sync (race/sex/head/hair) remains protected by the presence gate.
+
+AI r3 adaptation:
+- retained all existing ArenaMP authority checks, remote-player support and attack packet synchronization;
+- ported the newer AI r3 melee-pressure refinements from the supplied FIX9;
+- kept FIX7 rule: guards do NOT automatically join the player's side merely because an NPC attacked the player;
+- kept MP delayed door pursuit / ReturnHome authority logic;
+- kept MP DedicatedPlayer stealth/flee target handling;
+- no new packet ID and no protocol-version bump.
+
+Preserved from FIX12:
+- modern login + registration and RU/EN server messages;
+- player appearance/presence gate;
+- host network selector (Wi-Fi/Ethernet/Radmin/all interfaces/public advertise address);
+- Update Hash / requiredDataFiles v2 manifest sync / optional groundcover;
+- aggressive melee and all previous cumulative renderer/NPC fixes.
+
+Application:
+- CUMULATIVE archive: apply over the clean ArenaMP baseline used by this patch chain.
+- HOTFIX archive: apply only over BUILD FIX12.
+
+BUILD FIX14 — NEW APP ICONS
+- Replaced launcher, wizard and ArenaMP/TES3MP executable icons with the new supplied ArenaMW emblem.
+- Replaced launcher start/play icon and wizard Qt window icon with the same emblem.
+- ICO contains 16/24/32/48/64/128/256 layers with alpha transparency and safe padding.
+- No gameplay/network/server changes from FIX13.
+
+BUILD FIX15 — Stable multiplayer compatibility commit
+------------------------------------------------------
+Pinned the normal ArenaMP/TES3MP client and dedicated-server network identity to:
+0f659371bcbaf9e7e6b94bd6bcb7a81970082234
+
+This affects:
+- TES3MP client "Oldest compatible commit hash" log line;
+- TES3MP dedicated server "Oldest compatible commit hash" log line;
+- normal client RakNet connection password/handshake;
+- dedicated-server incoming RakNet password/handshake;
+- master-server CommitHash rule.
+
+The actual Git HEAD/build revision is intentionally left untouched. Recompiling from
+a new source commit therefore no longer changes ArenaMP network compatibility.
+The explicit legacy/vanilla compatibility mode remains separate and still advertises
+TES3MP_VANILLA_COMMIT_HASH when that mode is deliberately enabled.
+
+
+BUILD FIX16 — DedicatedPlayer null-map / cell-comparison crash fix
+- PlayerList::getPlayer(guid) no longer uses map::operator[] and cannot create guid -> nullptr entries.
+- getPlayersInCell() skips null/not-yet-instantiated remote players before ESM::Cell comparison.
+- deletePlayer() is safe for unknown/null GUID entries.
+- newPlayer() repairs a legacy null placeholder without leaking and avoids duplicate allocations.
+- cleanUp() clears the map after deleting players.
+- Fix is targeted at the captured 0xC0000005 dump in CellController::isSameCell (near-null ESM::Cell pointer 0x2e0 / read 0x338).
+
+BUILD FIX17 - Host Mode Admin / CO-OP-MMO / RU UI
+- Update Hash now forces config.enforceDataFiles = true and persists config.lua before manifest generation.
+- Host mode layout: Auto restart + Enforce DataFiles in two columns, CO-OP/MMO selector, maintenance buttons.
+- CO-OP preset enables shared journal/factions/topics/reputation/map/videos; bounty remains personal.
+- MMO preset disables shared player progression while core player/actor/world networking remains active.
+- Added Clear server cells (cell state only) and Full server reset (player/cell/world/map/custom/recordstore/database) with confirmation and server-stopped guard.
+- requiredDataFiles.json and banlist.json are preserved by Full server reset.
+- Launcher and Wizard use Russian UI only when the OS/system locale is Russian; every other locale uses English.
+- Removed fragile typographic bullet/em-dash UI status strings that produced mojibake on some Windows builds; graphics GPU labels now use ASCII separators.
+
+
+BUILD FIX18 - RU UI ENCODING FIX
+- Launcher and Wizard compile with MSVC /utf-8.
+- Built-in Russian translation table is ASCII-only via Unicode escapes.
+- Hardcoded Russian language selector text is source-codepage independent.
+- Fixes D0/D1 mojibake in Launcher/Wizard/Host Mode/graphics labels.
+
+BUILD FIX20 - GUILogin MSVC build fix
+- Removed accidental Qt QString usage from non-Qt tes3mp client target.
+- Russian language selector label is encoded as explicit UTF-8 bytes for MyGUI.
+- Keeps FIX19 appearance sync and FIX18 launcher/wizard UTF-8 localization intact.
+
+
+BUILD FIX21 - Authoritative Remote Appearance / Late BaseInfo Race Fix
+- Removed legacy second ID_PLAYER_BASEINFO RequestData from Networking::newPlayer().
+- Once a player is visible, server ignores late client BaseInfo packets instead of forwarding them.
+- Prevents correct Imperial/Argonian/Orc/etc snapshot from being overwritten by default Dark Elf ESM player data.
+- Shapeshift/scale packets are unaffected.
+- Server-side only; no protocol change.
+
+BUILD FIX24 - Presence Gate Rollback / Stable Immediate Presence
+- Rolled back the login/registration/CharGen hide -> reveal presence gate.
+- New server Player objects are visible immediately again, matching normal TES3MP flow.
+- Removed Networking::revealPlayer() and its bulk reveal snapshot exchange.
+- Decoupled FIX21 authoritative BaseInfo from visibility via appearanceAuthoritative.
+- Existing SetPlayerVisible(true) login/CharGen calls now finalize/lock appearance only.
+- Kept late-default-Dunmer BaseInfo protection, FIX22 instance AOI and FIX23 NPC locomotion sync.
+- Server-side only; no protocol/commit change.

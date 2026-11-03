@@ -1,0 +1,19 @@
+ArenaMP BUILD FIX5 validation
+=============================
+
+Registration state machine:
+- REGISTER PasswordDialog detected by GUI id=2 with note-text fallback.
+- Duplicate GM_TES3MP_InputBox modes are not stacked.
+- Account dialog and GM_TES3MP_InputBox are removed before ID_GUI_MESSAGEBOX password reply is sent.
+- This prevents LocalPlayer::processCharGen() from being blocked when the server immediately sends ID_PLAYER_CHARGEN after Register().
+- Accepted login/registration stops the stale login timeout on server.
+- Server logs explicit registration-password acceptance / CharGen start marker.
+
+UI:
+- tes3mp_login.layout height: 412 (+14 px)
+- tes3mp_register.layout height: 476 (+14 px)
+- XML parsed successfully.
+
+Protocol:
+- No new packet IDs.
+- Existing PasswordDialog / ID_GUI_MESSAGEBOX / ID_PLAYER_CHARGEN flow retained.

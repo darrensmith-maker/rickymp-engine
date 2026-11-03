@@ -1,0 +1,9 @@
+blending_rules:
+  - from: "*"
+    to: "*"
+    easing: "sineOut"
+    duration: 0.4
+  - from: ""
+    to: "*"
+    easing: "linear"
+    duration: 0.0

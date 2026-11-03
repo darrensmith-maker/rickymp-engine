@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MyGUI type="Resource" version="1.1">
+    <!-- Borderless topic list used by the cinematic dialogue. -->
+    <Resource type="ResourceSkin" name="MW_DialogueList" size="256 256" align="Left Top">
+        <Property key="ListItemSkin" value="MW_ListLine"/>
+        <Child type="Widget" skin="" offset="0 0 256 256" align="Top Left Stretch" name="Client"/>
+    </Resource>
+
+    <!-- Original Morrowind answer colours: red, pale-gold hover and bright pressed. -->
+    <Resource type="ResourceSkin" name="MW_DialogueChoiceLine" size="16 18">
+        <Property key="FontName" value="Default"/>
+        <Property key="TextAlign" value="Left VCenter"/>
+        <Property key="NeedKey" value="true"/>
+        <BasisSkin type="SimpleText" offset="0 0 16 18" align="Stretch">
+            <State name="disabled" colour="#96321e" shift="0"/>
+            <State name="normal" colour="#96321e" shift="0"/>
+            <State name="highlighted" colour="#dfc99f" shift="0"/>
+            <State name="pushed" colour="#f3eddd" shift="0"/>
+            <State name="disabled_checked" colour="#96321e" shift="0"/>
+            <State name="normal_checked" colour="#dfc99f" shift="0"/>
+            <State name="highlighted_checked" colour="#f3eddd" shift="0"/>
+            <State name="pushed_checked" colour="#f3eddd" shift="0"/>
+        </BasisSkin>
+    </Resource>
+
+    <Resource type="ResourceSkin" name="MW_DialogueChoiceList" size="256 256" align="Left Top">
+        <Property key="ListItemSkin" value="MW_DialogueChoiceLine"/>
+        <Child type="Widget" skin="" offset="0 0 256 256" align="Top Left Stretch" name="Client"/>
+    </Resource>
+</MyGUI>

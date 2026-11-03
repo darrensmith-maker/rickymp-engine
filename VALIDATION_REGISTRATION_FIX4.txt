@@ -1,0 +1,10 @@
+ArenaMP BUILD FIX4 - Modern registration
+
+Static validation targets:
+- Client LOGIN id 1 keeps fast-login path.
+- Client REGISTER id 2 always opens registration UI and never auto-submits cached password.
+- Registration requires non-empty password + confirmation and exact match.
+- Selected RU/EN is applied before ID_PLAYER_BASEINFO re-send and registration reply.
+- Server guiHelper keeps native PasswordDialog fallback for older clients.
+- Server fallback registration title/note use per-player localization.
+- No network packet ids or packet serialization formats changed.

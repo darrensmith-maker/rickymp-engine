@@ -1,0 +1,17 @@
+ArenaMP BUILD FIX21 - Authoritative Remote Appearance / Late BaseInfo Race Fix
+
+Root cause confirmed from runtime logs:
+- server publishes the correct final appearance snapshot (e.g. Imperial female);
+- the remote client creates the DedicatedPlayer with that correct appearance;
+- a legacy ID_PLAYER_BASEINFO RequestData response then arrives after revealPlayer();
+- that late client packet contains the default ESM `player` identity (Dark Elf male);
+- the server used to forward it to other clients, overwriting the correct appearance.
+
+Fix:
+1. Networking::newPlayer() no longer issues the redundant second ID_PLAYER_BASEINFO RequestData request.
+2. Once Player::isVisibleToOthers() is true, client-origin ID_PLAYER_BASEINFO is ignored.
+3. Server logs the authoritative appearance retained when a late packet is rejected.
+4. CharGen BaseInfo is still accepted while the player is hidden.
+5. ID_PLAYER_SHAPESHIFT/scale remains unchanged.
+6. No protocol or packet format changes.
+7. Server-side fix; FIX20 clients do not require rebuilding specifically for FIX21.

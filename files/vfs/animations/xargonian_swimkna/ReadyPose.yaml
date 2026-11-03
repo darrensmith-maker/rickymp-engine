@@ -1,0 +1,9 @@
+blending_rules:
+  - from: "*"
+    to: "readypose"
+    easing: "sineInOut"
+    duration: 0.7
+  - from: "arms*"
+    to: "readypose"
+    easing: "sineInOut"
+    duration: 0.7

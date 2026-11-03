@@ -1,0 +1,12 @@
+BUILD FIX17 static validation
+- XML: files/ui/playpage.ui OK
+- XML: files/ui/advancedpage.ui OK
+- Host Update Hash -> enforceDataFiles linkage present
+- Host quick enforce checkbox -> config form linkage present
+- CO-OP/MMO preset logic present
+- Clear-cell and full-reset signals/slots present
+- Reset operations refuse while server process is running
+- Full reset preserves requiredDataFiles.json and banlist.json
+- Russian system-locale translator installed in launcher and wizard; other locales remain English
+- Launcher/graphics status separators sanitized to ASCII
+- C++ brace/parenthesis balance checked for modified launcher sources

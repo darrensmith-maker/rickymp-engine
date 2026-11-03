@@ -1,0 +1,17 @@
+blending_rules:
+  - from: "*"
+    to: "sdppreachbeckon"
+    easing: "quartOut"
+    duration: 0.25
+  - from: "sdppreachbeckon"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.25
+  - from: "*"
+    to: "sdppreachhold"
+    easing: "quartOut"
+    duration: 0.25
+  - from: "sdppreachhold"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.25

@@ -1,0 +1,9 @@
+blending_rules:
+  - from: "*"
+    to: "arms*"
+    easing: "sineOut"
+    duration: 0.7
+  - from: "armsgesture*"
+    to: "arms*"
+    easing: "sineOut"
+    duration: 0.6

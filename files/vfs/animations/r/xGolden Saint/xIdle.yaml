@@ -1,0 +1,21 @@
+blending_rules:
+  - from: "*"
+    to: "idle"
+    easing: "sineOut"
+    duration: 0.4
+  - from: "arms*"
+    to: "idle"
+    easing: "sineInOut"
+    duration: 0.7
+  - from: "handhippose:*"
+    to: "idle"
+    easing: "sineInOut"
+    duration: 1.2
+  - from: "idle*"
+    to: "idle"
+    easing: "sineInOut"
+    duration: 0.7
+  - from: "readypose"
+    to: "idle"
+    easing: "quartInOut"
+    duration: 1.5

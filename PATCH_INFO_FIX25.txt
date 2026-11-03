@@ -1,0 +1,30 @@
+ArenaMP BUILD FIX25 - EncoreMP NPC Locomotion / Remote Anti-Sliding
+Base: BUILD FIX24
+
+Purpose:
+- Fix remote NPCs visibly moving while legs remain in idle on non-authority clients.
+- Preserve the newer dynamic/bone animation systems instead of rolling them back.
+
+Changes:
+1) LocalActor.cpp
+   - Keeps real position-delta detection so externally/root/script moved NPCs still send ActorPosition.
+   - Stops inventing movement direction at the sender packet boundary; direction remains CharacterController-authoritative as in EncoreMP.
+
+2) Cell.cpp (client)
+   - Restores direct EncoreMP-style application of network position + direction.
+   - Removes packet-timing-based receiver direction synthesis from FIX23.
+
+3) DedicatedActor.cpp
+   - Adds a local locomotion fallback at the exact render/mechanics layer.
+   - If a DedicatedActor is visibly interpolating but packet translation direction is zero, supplies a local forward/back movement input so CharacterController selects walking animation.
+   - Does not alter network/server state and does not fake walking for cell-change/teleport corrections.
+
+4) InteractionAnimationSync.cpp
+   - Fixes case-sensitive movement animation names to actual KF groups.
+   - Includes NPC dynamic styles and first-person Walk/Run/Sneak *_base groups.
+
+Compatibility:
+- Network protocol unchanged.
+- Stable compatibility commit remains 0f659371bcbaf9e7e6b94bd6bcb7a81970082234.
+- Requires rebuilding Windows and Android clients to receive this fix.
+- Dedicated server rebuild is not required for these FIX25 changes.

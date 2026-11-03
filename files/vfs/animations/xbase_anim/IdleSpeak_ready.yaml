@@ -1,0 +1,5 @@
+blending_rules:
+  - from: "*"
+    to: "*"
+    easing: "sineOut"
+    duration: 0.7

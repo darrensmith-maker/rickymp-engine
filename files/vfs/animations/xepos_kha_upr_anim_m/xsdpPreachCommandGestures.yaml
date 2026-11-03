@@ -1,0 +1,33 @@
+blending_rules:
+  - from: "*"
+    to: "sdppreachcommand01"
+    easing: "quartOut"
+    duration: 0.25
+  - from: "sdppreachcommand01"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.25
+  - from: "*"
+    to: "sdppreachcommand02"
+    easing: "quartOut"
+    duration: 0.25
+  - from: "sdppreachcommand02"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.25
+  - from: "*"
+    to: "sdppreachcommand03"
+    easing: "quartOut"
+    duration: 0.25
+  - from: "sdppreachcommand03"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.25
+  - from: "*"
+    to: "sdppreachcommand04"
+    easing: "quartOut"
+    duration: 0.25
+  - from: "sdppreachcommand04"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.25

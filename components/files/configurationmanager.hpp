@@ -1,0 +1,110 @@
+#ifndef COMPONENTS_FILES_CONFIGURATIONMANAGER_HPP
+#define COMPONENTS_FILES_CONFIGURATIONMANAGER_HPP
+
+#include <map>
+#include <set>
+#include <stack>
+#include <vector>
+
+#include <boost/program_options.hpp>
+
+#include <components/files/fixedpath.hpp>
+#include <components/files/collections.hpp>
+
+/**
+ * \namespace Files
+ */
+namespace Files
+{
+
+    /**
+     * \struct ConfigurationManager
+     */
+    struct ConfigurationManager
+    {
+        ConfigurationManager(bool silent = false); /// @param silent Emit log messages to cout?
+        virtual ~ConfigurationManager();
+
+        void readConfiguration(boost::program_options::variables_map& variables,
+            boost::program_options::options_description& description, bool quiet = false);
+
+        /**
+         * Register common TES3MP config options. Call this on your options_description
+         * before readConfiguration (and before command_line_parser) so these options
+         * are recognised in openmw.cfg and on the CLI.
+         *
+         *   local-config=true   Skip ~/.config/tes3mp and read only the local config
+         *                       next to the binary.  Set in openmw.cfg.local for a
+         *                       portable install — no rebuild required.
+         *
+         *   config=<dir>        Chain in an additional config directory at lower
+         *                       priority.  May appear multiple times.  Set in
+         *                       openmw.cfg.local to pull in shared or per-server
+         *                       config trees.
+         */
+        static void addCommonOptions(boost::program_options::options_description& description);
+
+        boost::program_options::variables_map separateComposingVariables(boost::program_options::variables_map& variables, boost::program_options::options_description& description);
+
+        void mergeComposingVariables(boost::program_options::variables_map& first, boost::program_options::variables_map& second, boost::program_options::options_description& description);
+
+        void processPaths(Files::PathContainer& dataDirs, bool create = false) const;
+        ///< \param create Try creating the directory, if it does not exist.
+
+        /**< Fixed paths */
+        const boost::filesystem::path& getGlobalPath() const;
+        const boost::filesystem::path& getUserConfigPath() const;
+        const boost::filesystem::path& getLocalPath() const;
+
+        const boost::filesystem::path& getGlobalDataPath() const;
+        const boost::filesystem::path& getUserDataPath() const;
+        const boost::filesystem::path& getLocalDataPath() const;
+        const boost::filesystem::path& getInstallPath() const;
+
+        const boost::filesystem::path& getCachePath() const;
+
+        const boost::filesystem::path& getLogPath() const;
+        const boost::filesystem::path& getScreenshotPath() const;
+
+        /// Return the canonical portable TES3MP settings path:
+        /// <installation>/userdata/settings.cfg.
+        ///
+        /// ArenaMP deliberately does not fall back to a Documents copy here,
+        /// because the launcher and the client must load and save the same file.
+        boost::filesystem::path getPrimarySettingsPath() const;
+
+        /// Return Documents/NirnSave/OpenMW/settings.cfg for explicit legacy import only.
+        boost::filesystem::path getDocumentsSettingsPath() const;
+
+    private:
+        typedef Files::FixedPath<> FixedPathType;
+
+        typedef const boost::filesystem::path& (ConfigurationManager::* path_type_f)() const;
+        typedef std::map<std::string, path_type_f> TokensMappingContainer;
+
+        bool loadConfig(const boost::filesystem::path& path,
+            boost::program_options::variables_map& variables,
+            boost::program_options::options_description& description);
+
+        void setupTokensMapping();
+
+        void addExtraConfigDirs(std::stack<boost::filesystem::path>& dirs,
+            const boost::program_options::variables_map& variables) const;
+
+        FixedPathType mFixedPath;
+
+        boost::filesystem::path mLocalPath;
+        boost::filesystem::path mUserConfigPath;
+        boost::filesystem::path mUserDataPath;
+        boost::filesystem::path mLogPath;
+        boost::filesystem::path mScreenshotPath;
+
+        TokensMappingContainer mTokensMapping;
+
+        std::vector<boost::filesystem::path> mActiveConfigPaths;
+
+        bool mSilent;
+    };
+} /* namespace Cfg */
+
+#endif /* COMPONENTS_FILES_CONFIGURATIONMANAGER_HPP */

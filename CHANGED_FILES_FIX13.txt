@@ -1,0 +1,16 @@
+files/mygui/openmw_chargen_race.layout
+files/mygui/openmw_chargen_review.layout
+files/vfs/l10n/arenamp/en.ini
+files/vfs/l10n/arenamp/ru.ini
+apps/openmw-mp/Networking.cpp
+apps/openmw/mwrender/characterpreview.cpp
+apps/openmw/mwrender/characterpreview.hpp
+apps/openmw/mwgui/charactercreation.cpp
+apps/openmw/mwgui/charactercreation.hpp
+apps/openmw/mwgui/race.cpp
+apps/openmw/mwgui/race.hpp
+apps/openmw/mwgui/review.cpp
+apps/openmw/mwgui/review.hpp
+apps/openmw/mwmechanics/aicombat.cpp
+apps/openmw/mwmp/LocalPlayer.cpp
+server/scripts/player/base.lua

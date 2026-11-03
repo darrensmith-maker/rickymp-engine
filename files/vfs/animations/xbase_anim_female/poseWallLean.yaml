@@ -1,0 +1,5 @@
+blending_rules:
+  - from: "*"
+    to: "posewalllean"
+    easing: "sineInOut"
+    duration: 0.7

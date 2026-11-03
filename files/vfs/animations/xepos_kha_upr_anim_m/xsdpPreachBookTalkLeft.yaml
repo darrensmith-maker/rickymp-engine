@@ -1,0 +1,9 @@
+blending_rules:
+  - from: "*"
+    to: "sdppreachbooktalkleft"
+    easing: "quartOut"
+    duration: 0.2
+  - from: "sdppreachbooktalkleft"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.2

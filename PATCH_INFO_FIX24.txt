@@ -1,0 +1,28 @@
+ArenaMP BUILD FIX24 - Presence Gate Rollback / Stable Immediate Presence
+======================================================================
+
+Reason
+------
+The hide-during-login/registration/CharGen presence gate introduced an unstable
+hide -> reveal transition. In multi-client tests one client could lose connection
+when players became mutually relevant in the same world area.
+
+Changes
+-------
+- Player presence is immediate again: a new Player starts visibleToOthers=true.
+- Removed the revealPlayer() snapshot path entirely from the dedicated server.
+- Existing SetPlayerVisible(true) calls in login/CharGen no longer trigger reveal;
+  they only lock the final server-side BaseInfo as authoritative.
+- Added an independent appearanceAuthoritative flag to Player.
+- Late client ID_PLAYER_BASEINFO is still rejected after login/CharGen finalization,
+  preserving FIX21 and preventing the default ESM Dark Elf template from replacing
+  the saved race/head/hair.
+- The legacy second BaseInfo RequestData in Networking::newPlayer() remains disabled.
+- Cell-local/AOI exchange from FIX22 remains active, so unrelated private instances
+  are not cross-published.
+- FIX23 NPC locomotion synchronization is preserved unchanged.
+- No packet ID, protocol version or compatibility commit change.
+
+Build scope
+-----------
+Server-side only. Windows/Android clients do not need rebuilding for FIX24 itself.

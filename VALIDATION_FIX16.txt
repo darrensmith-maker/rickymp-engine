@@ -1,0 +1,18 @@
+ArenaMP BUILD FIX16 validation
+
+Source base: FIX15 cumulative
+Crash evidence:
+- Windows minidump exception: 0xC0000005 (read access violation)
+- Faulting tes3mp.exe RVA: 0x482665
+- Bad read address: 0x338
+- Faulting function machine code matches CellController::isSameCell(): ESM::Cell::mData flags at +0x58, X at +0x5c, Y at +0x60
+- Second ESM::Cell argument at crash: 0x2e0 (near-null derived pointer)
+
+Hardening:
+- PlayerList GUID lookup is non-mutating (find, never operator[])
+- Null/uninstantiated DedicatedPlayers skipped by getPlayersInCell
+- Safe delete for missing/null player entries
+- Duplicate/null-slot-safe newPlayer
+- cleanup clears map
+
+No changes to protocol, CharGen state machine, manifest format, fixed compatibility hash, renderer, or server scripts.

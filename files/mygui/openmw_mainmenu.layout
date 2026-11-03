@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<MyGUI type="Layout">
+    <!-- The entire screen -->
+    <Widget type="Widget" layer="MainMenu" position="0 0 300 300" name="_Main">
+        <Widget type="EditBox" skin="MW_TextBoxEdit" position="0 250 280 50" align="Bottom Right" name="VersionText">
+            <Property key="TextAlign" value="Right"/>
+            <Property key="TextShadow" value="true"/>
+            <Property key="TextShadowColour" value="0 0 0"/>
+            <Property key="ReadOnly" value="true"/>
+            <Property key="MultiLine" value="true"/>
+        </Widget>
+        <Widget type="TextBox" skin="SandText" position="370 48 500 28" align="Center Top" name="PauseBrandText">
+            <Property key="Visible" value="false"/>
+            <Property key="NeedMouse" value="false"/>
+            <Property key="NeedKey" value="false"/>
+            <Property key="TextAlign" value="Center"/>
+            <Property key="TextShadow" value="true"/>
+            <Property key="TextShadowColour" value="0 0 0"/>
+        </Widget>
+        <Widget type="EditBox" skin="TES3MP_ChatHistory" position="20 80 520 190" align="Default" name="MenuChatHistory">
+            <Property key="Visible" value="false"/>
+            <Property key="MultiLine" value="true"/>
+            <Property key="ReadOnly" value="true"/>
+            <Property key="NeedMouse" value="true"/>
+            <Property key="NeedKey" value="true"/>
+            <Property key="FontName" value="Russo"/>
+            <Property key="TextAlign" value="Left Top"/>
+            <Property key="TextColour" value="1 1 1"/>
+            <Property key="InvertSelected" value="false"/>
+            <Property key="WordWrap" value="true"/>
+        </Widget>
+    </Widget>
+</MyGUI>

@@ -1,0 +1,2 @@
+BUILD FIX19 addition: remote player appearance synchronization hardening.
+See apps/openmw-mp/Networking.cpp and apps/openmw/mwmp/DedicatedPlayer.cpp.

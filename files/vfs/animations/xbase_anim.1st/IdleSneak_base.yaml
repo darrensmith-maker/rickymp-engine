@@ -1,0 +1,13 @@
+blending_rules:
+  - from: "*"
+    to: "*"
+    easing: "sineOut"
+    duration: 0.4
+  - from: "*"
+    to: "*:loop start"
+    easing: "linear"
+    duration: 0.0
+  - from: ""
+    to: "*"
+    easing: "linear"
+    duration: 0.0

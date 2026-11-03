@@ -1,0 +1,12 @@
+BUILD FIX25 validation
+
+- Compared ArenaMP NPC locomotion flow against EncoreMP-main.
+- Restored stock Encore semantics at ActorPosition packet boundaries: position + direction are transmitted/applied without packet-layer synthesis.
+- Retained actual world-position delta detection in LocalActor so root/script movement still produces ActorPosition updates.
+- Added DedicatedActor::move fallback only when a remote actor visibly interpolates while received translation direction is zero; this drives local CharacterController locomotion without modifying packet/server state.
+- Cell transitions/teleports do not synthesize walking.
+- Fixed case-sensitive dynamic movement animation group names to match actual KF text keys, including NPC styles and first-person *_base groups.
+- Validated bundled KF text keys/files for WalkForward_mw, WalkForward_mwFem, WalkForward_march, WalkForward_spd09, WalkForward_noble, WalkForward_dirn154, WalkForward_march154 and first-person Walk/Run/Sneak *_base groups.
+- git diff --check passed for changed source files.
+- No packet/protocol version change.
+- Full MSVC/Android compile was not executed in this container.

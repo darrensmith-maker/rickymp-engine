@@ -1,0 +1,17 @@
+blending_rules:
+  - from: "*"
+    to: "sdppreachformal01"
+    easing: "quartOut"
+    duration: 0.25
+  - from: "sdppreachformal01"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.25
+  - from: "*"
+    to: "sdppreachformal02"
+    easing: "quartOut"
+    duration: 0.25
+  - from: "sdppreachformal02"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.25

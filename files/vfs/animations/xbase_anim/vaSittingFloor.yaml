@@ -1,0 +1,9 @@
+blending_rules:
+  - from: "*"
+    to: "vasittingfloor"
+    easing: "quartOut"
+    duration: 1.2
+  - from: "vasittingfloor"
+    to: "*"
+    easing: "quartIn"
+    duration: 1.2

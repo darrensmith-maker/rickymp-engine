@@ -1,0 +1,6 @@
+ArenaMP CoreArenaMP v20 — Data Tamper Guard Only
+
+Based on v19 Native KTX2.
+Purpose: keep data-substitution protection while disabling behavioral anti-cheat that caused false positives during CharGen and normal object activation.
+
+See server/COREARENAMP_SECURITY.md.

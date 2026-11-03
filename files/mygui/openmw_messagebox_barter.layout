@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<MyGUI type="Layout">
+    <!-- Barter-only transient notification: opaque black client + Morrowind
+         dialog frame so errors/price messages remain visible over both panes. -->
+    <Widget type="Window" skin="MW_DialogNoTransp" layer="MessageBox" position="0 0 520 54" name="_Main">
+        <Property key="NeedMouse" value="false"/>
+        <Widget type="EditBox" skin="MW_TextEditClient" position="12 8 496 38" name="message" align="Stretch">
+            <Property key="FontName" value="Default"/>
+            <Property key="TextAlign" value="Center"/>
+            <Property key="Static" value="true"/>
+            <Property key="WordWrap" value="true"/>
+            <Property key="MultiLine" value="1"/>
+            <Property key="VisibleVScroll" value="0"/>
+            <Property key="NeedMouse" value="false"/>
+            <Property key="TextShadow" value="true"/>
+            <Property key="TextShadowColour" value="0 0 0"/>
+        </Widget>
+    </Widget>
+</MyGUI>

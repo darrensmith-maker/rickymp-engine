@@ -1,0 +1,65 @@
+blending_rules:
+  - from: "*"
+    to: "sdpvasitting6"
+    easing: "quartOut"
+    duration: 1.2
+  - from: "sdpvasitting6"
+    to: "*"
+    easing: "quartIn"
+    duration: 1.2
+  - from: "*"
+    to: "sdpvasitting5"
+    easing: "quartOut"
+    duration: 1.2
+  - from: "sdpvasitting5"
+    to: "*"
+    easing: "quartIn"
+    duration: 1.2
+  - from: "*"
+    to: "sdpvasitting4"
+    easing: "quartOut"
+    duration: 1.2
+  - from: "sdpvasitting4"
+    to: "*"
+    easing: "quartIn"
+    duration: 1.2
+  - from: "*"
+    to: "sdpvasitting3"
+    easing: "quartOut"
+    duration: 1.2
+  - from: "sdpvasitting3"
+    to: "*"
+    easing: "quartIn"
+    duration: 1.2
+  - from: "*"
+    to: "sdpvasitting2"
+    easing: "quartOut"
+    duration: 0.7
+  - from: "sdpvasitting2"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.7
+  - from: "*"
+    to: "sdpvasitting7"
+    easing: "quartOut"
+    duration: 0.7
+  - from: "sdpvasitting7"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.7
+  - from: "*"
+    to: "sdpvasitting8"
+    easing: "quartOut"
+    duration: 0.35
+  - from: "sdpvasitting8"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.35
+  - from: "*"
+    to: "sdpvasitting9"
+    easing: "quartOut"
+    duration: 0.35
+  - from: "sdpvasitting9"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.35

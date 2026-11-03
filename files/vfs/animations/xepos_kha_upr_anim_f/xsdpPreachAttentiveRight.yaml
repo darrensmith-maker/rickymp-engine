@@ -1,0 +1,9 @@
+blending_rules:
+  - from: "*"
+    to: "sdppreachattentiveright"
+    easing: "quartOut"
+    duration: 0.2
+  - from: "sdppreachattentiveright"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.2

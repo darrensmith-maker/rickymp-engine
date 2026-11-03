@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+rm -rf build stage
+mkdir -p build stage
+
+cmake -S . -B build -G Ninja \
+  -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE:-Release}" \
+  -DCMAKE_INSTALL_PREFIX="${GITHUB_WORKSPACE:-$PWD}/stage" \
+  -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+  -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+  -DBUILD_SHARED_LIBS=OFF \
+  -DBUILD_OPENCS=OFF \
+  -DBUILD_WIZARD=OFF \
+  -DBUILD_UNITTESTS=OFF \
+  -DUSE_SYSTEM_TINYXML=ON \
+  -DOPENMW_USE_SYSTEM_MYGUI=ON \
+  -DOPENMW_USE_SYSTEM_OSG=ON \
+  -DOPENMW_USE_SYSTEM_BULLET=ON

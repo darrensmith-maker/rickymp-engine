@@ -1,0 +1,33 @@
+ArenaMP BUILD FIX23 - NPC Locomotion Sync / Anti-Sliding
+
+Problem:
+Remote NPCs could receive changing ActorPosition coordinates while their movement direction was zero.
+Their world position therefore moved/interpolated, but CharacterController selected an idle animation,
+which looked like the NPC was sliding across the ground without moving its legs. It affected only some
+actors because live authority packets normally include direction, while cached/restored/scripted position
+updates can have no direction.
+
+Fixes:
+1) apps/openmw/mwmp/LocalActor.cpp
+   - Detects real world-position changes even when movement direction is zero.
+   - Sends ActorPosition for scripted/direct-position movement instead of relying only on direction flags.
+   - Synthesizes a safe forward/back locomotion direction for such movement so remote leg animation stays active.
+   - Filters sub-0.25-unit jitter and ignores >256-unit corrections/teleports.
+
+2) apps/openmw/mwmp/Cell.cpp
+   - When a remote DedicatedActor receives consecutive ActorPosition packets with zero direction but a real
+     horizontal position delta, derives a visual locomotion direction from the delta and actor facing.
+   - Authoritative position remains the network position; no protocol or gameplay authority changes.
+
+3) apps/openmw-mp/Cell.cpp
+   - Server-side actor cache now stores ActorPosition.direction together with ActorPosition.position.
+
+Compatibility:
+- No packet ID changes.
+- No network protocol version bump.
+- Fixed compatibility commit remains 0f659371bcbaf9e7e6b94bd6bcb7a81970082234.
+- FIX22 instanced-cell isolation, FIX21 authoritative player appearance and all earlier fixes are retained.
+
+Build note:
+This fix changes both client and dedicated server code. Rebuild Windows clients and Android clients for the
+full anti-sliding fallback, and rebuild the dedicated server for the direction-cache fix.

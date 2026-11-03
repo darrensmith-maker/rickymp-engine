@@ -1,0 +1,9 @@
+blending_rules:
+  - from: "*"
+    to: "sdppreachaddressspeakright"
+    easing: "quartOut"
+    duration: 0.2
+  - from: "sdppreachaddressspeakright"
+    to: "*"
+    easing: "quartIn"
+    duration: 0.2
