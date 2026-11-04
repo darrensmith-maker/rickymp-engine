@@ -1030,6 +1030,7 @@ namespace MWRender
                 : depth > underwaterEnterDepth;
         }
         mUnderwaterFogActive = underwaterNow;
+        mWater->setCameraUnderwater(mUnderwaterFogActive);
 
         mStateUpdater->setFogStart(mFog->getFogStart(mUnderwaterFogActive));
         mStateUpdater->setFogEnd(mFog->getFogEnd(mUnderwaterFogActive));

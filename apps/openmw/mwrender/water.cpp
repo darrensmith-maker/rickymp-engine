@@ -222,11 +222,13 @@ public:
 class WaterStateUpdater : public SceneUtil::StateSetUpdater
 {
 public:
-    WaterStateUpdater(osg::PositionAttitudeTransform* waterNode, Ripples* ripples, const bool* interior)
+    WaterStateUpdater(osg::PositionAttitudeTransform* waterNode, Ripples* ripples, const bool* interior,
+        const bool* cameraUnderwater)
         : mRainIntensity(0.f)
         , mWaterNode(waterNode)
         , mRipples(ripples)
         , mInterior(interior)
+        , mCameraUnderwater(cameraUnderwater)
     {
     }
 
@@ -236,6 +238,13 @@ public:
     }
 
 protected:
+    // Refractive water seen from above writes depth (see setDefaults). Seen from below it does not: underwater
+    // effects (DIVE's fog) then reach through the surface as before, instead of stopping at it and showing the sky.
+    bool writesDepth() const
+    {
+        return Settings::Manager::getBool("refraction", "Water") && !(mCameraUnderwater && *mCameraUnderwater);
+    }
+
     void setDefaults(osg::StateSet* stateset) override
     {
         stateset->addUniform(new osg::Uniform("rainIntensity", 0.0f));
@@ -258,7 +267,7 @@ protected:
         // reflections, ambient occlusion) need the water surface there, not the lake bed under it. Each of the two
         // statesets gets its own Depth, so apply() can follow the refraction setting without rebuilding the water.
         osg::ref_ptr<osg::Depth> depth = new osg::Depth;
-        depth->setWriteMask(Settings::Manager::getBool("refraction", "Water"));
+        depth->setWriteMask(writesDepth());
         stateset->setAttributeAndModes(depth, osg::StateAttribute::ON);
 
         if (mRipples)
@@ -289,7 +298,7 @@ protected:
             useRefractionUniform->set(Settings::Manager::getBool("refraction", "Water") ? 1.0f : 0.0f);
 
         if (osg::Depth* depth = static_cast<osg::Depth*>(stateset->getAttribute(osg::StateAttribute::DEPTH)))
-            depth->setWriteMask(Settings::Manager::getBool("refraction", "Water"));
+            depth->setWriteMask(writesDepth());
 
         if (osg::Uniform* useActorRipplesUniform = stateset->getUniform("useActorRipples"))
             useActorRipplesUniform->set(mRipples ? 1.0f : 0.0f);
@@ -315,6 +324,7 @@ private:
     osg::PositionAttitudeTransform* mWaterNode;
     Ripples* mRipples;
     const bool* mInterior;
+    const bool* mCameraUnderwater;
 };
 
 
@@ -550,6 +560,7 @@ Water::Water(osg::Group *parent, osg::Group* sceneRoot, Resource::ResourceSystem
     , mToggled(true)
     , mTop(0)
     , mInterior(false)
+    , mCameraUnderwater(false)
     , mCullCallback(nullptr)
 {
     mSimulation.reset(new RippleSimulation(mSceneRoot, resourceSystem));
@@ -796,7 +807,7 @@ void Water::createShaderWaterStateSet(osg::Node* node, Reflection* reflection, R
 
     node->setStateSet(shaderStateset);
 
-    mWaterStateUpdater = new WaterStateUpdater(mWaterNode.get(), mRipples.get(), &mInterior);
+    mWaterStateUpdater = new WaterStateUpdater(mWaterNode.get(), mRipples.get(), &mInterior, &mCameraUnderwater);
     node->setUpdateCallback(mWaterStateUpdater);
 }
 
@@ -908,6 +919,11 @@ void Water::setRainIntensity(float rainIntensity)
 {
     if (mWaterStateUpdater)
         mWaterStateUpdater->setRainIntensity(rainIntensity);
+}
+
+void Water::setCameraUnderwater(bool underwater)
+{
+    mCameraUnderwater = underwater;
 }
 
 void Water::update(float dt)

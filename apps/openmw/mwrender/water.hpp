@@ -72,6 +72,7 @@ namespace MWRender
         bool mToggled;
         float mTop;
         bool mInterior;
+        bool mCameraUnderwater;
 
         osg::Callback* mCullCallback;
 
@@ -117,6 +118,8 @@ namespace MWRender
         void changeCell(const MWWorld::CellStore* store);
         void setHeight(const float height);
         void setRainIntensity(const float rainIntensity);
+        /// The camera is under the water: refractive water then does not write depth (see WaterStateUpdater)
+        void setCameraUnderwater(bool underwater);
 
         void update(float dt);
 
