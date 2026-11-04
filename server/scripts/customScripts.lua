@@ -1,5 +1,19 @@
--- Load up your custom scripts here! Ideally, your custom scripts will be placed in the scripts/custom folder and then get loaded like this:
+-- ============================================================================
+-- RickyMP SERVER - CUSTOM SCRIPTS LOAD ORDER
+-- File: server/scripts/customScripts.lua (RickyMP by Ricky)
+-- ============================================================================
+-- This file loads your own server scripts. It ships empty: the server runs as a
+-- plain co-op server until you add scripts here.
 --
--- require("custom/yourScript")
+-- 1. Put each script in server/scripts/custom/ (a single .lua file, or a folder).
+-- 2. Add one require line for it below, in the order the scripts should load:
+--      a file custom/myScript.lua            loads as   custom.myScript
+--      a folder custom/myMod/ with main.lua  loads as   custom.myMod.main
+--    written as  require("custom.<name>")  with the name in place of <name>.
+-- 3. To turn a script off, put -- in front of its line.
 --
--- Refer to the Tutorial.md file for information on how to use various event and command hooks in your scripts.
+-- The RickyMP Launcher (Server Scripts page) finds scripts in the custom folder
+-- and writes, ticks and orders these lines for you.
+-- Event and command hooks: see server/Tutorial.md.
+-- ============================================================================
+
