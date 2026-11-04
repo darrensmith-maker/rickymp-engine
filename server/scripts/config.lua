@@ -30,7 +30,8 @@ config.maxClientsPerIP = 3
 -- 101 to 150 = Grandmaster 
 -- 151 to 200 = Agent
 -- 201+ = Nerevarine (absurdly difficult!)
-config.difficulty = 201
+-- RickyMP co-op default (Ricky, 2026-11-03): 0, Apprentice; ArenaMP shipped 201. Raise to 1-50 for Journeyman.
+config.difficulty = 0
 
 -- ArenaMP engine mechanics enforced for every connected client
 --
@@ -274,7 +275,8 @@ config.nightStartHour = 20
 config.nightEndHour = 6
 
 -- Whether players should be allowed to use the ingame tilde (~) console by default
-config.allowConsole = true
+-- RickyMP co-op default: off, so players cannot cheat; staff can turn it on per player with /setconsole
+config.allowConsole = false
 
 -- Whether players should be allowed to rest in bed by default
 config.allowBedRest = true
@@ -642,12 +644,14 @@ config.cellPacketTypes = { "delete", "place", "spawn", "lock", "trap", "scale", 
 -- Warning: Only set this to false if you trust the people connecting and are sure they know
 --          what they're doing. Otherwise, you risk getting corrupt server data from
 --          their usage of unshared plugins.
-config.enforceDataFiles = false
+-- RickyMP co-op default: on, so every player has the server's mods (the RickyMP Launcher writes the list)
+config.enforceDataFiles = true
 
 -- Whether the server should avoid crashing when Lua script errors occur
 -- Warning: Only set this to true if you want to have a highly experimental server where
 --          important data can potentially stay unloaded or get overwritten
-config.ignoreScriptErrors = true
+-- RickyMP co-op default: off, as on Ricky's own servers (custom scripts guard their own code with pcall)
+config.ignoreScriptErrors = false
 
 -- The type of database or data format used by the server
 -- Valid values: json, sqlite3
