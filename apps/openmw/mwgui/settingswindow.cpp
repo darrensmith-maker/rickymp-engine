@@ -23,6 +23,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <limits>
+#include <map>
 #include <sstream>
 #include <unordered_set>
 
@@ -35,6 +36,7 @@
 #include <components/resource/resourcesystem.hpp>
 #include <components/resource/scenemanager.hpp>
 #include <components/sceneutil/lightmanager.hpp>
+#include <components/vfs/manager.hpp>
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/world.hpp"
@@ -75,6 +77,123 @@ namespace
         return stream.str();
     }
 
+    // An effect pack's texts, from its l10n/<context>/<language>.yaml as in OpenMW 0.51 ("Key: text" per line, or a
+    // "|" / ">" block of indented lines). Read once per pack; English when the interface language has no file.
+    const std::map<std::string, std::string>& effectPackTexts(const std::string& context)
+    {
+        static std::map<std::string, std::map<std::string, std::string>> cache;
+        const auto cached = cache.find(context);
+        if (cached != cache.end())
+            return cached->second;
+
+        std::map<std::string, std::string>& texts = cache[context];
+        const VFS::Manager* vfs = MWBase::Environment::get().getResourceSystem()->getVFS();
+        std::string language = lowerAscii(Settings::Manager::getString("interface language", "General"));
+        if (language.empty() || language == "auto")
+            language = "en";
+        std::string path = "l10n/" + context + "/" + language + ".yaml";
+        if (!vfs->exists(path))
+            path = "l10n/" + context + "/en.yaml";
+        if (!vfs->exists(path))
+            return texts;
+
+        try
+        {
+            auto stream = vfs->get(path);
+            std::string line, blockKey, block;
+            char blockJoin = 0;
+            auto finishBlock = [&]()
+            {
+                if (!blockKey.empty())
+                    texts[blockKey] = block;
+                blockKey.clear();
+                block.clear();
+                blockJoin = 0;
+            };
+            while (std::getline(*stream, line))
+            {
+                if (!line.empty() && line.back() == '\r')
+                    line.pop_back();
+                const std::size_t indent = line.find_first_not_of(" \t");
+                if (blockJoin != 0 && indent != std::string::npos && indent > 0)
+                {
+                    if (!block.empty())
+                        block += blockJoin;
+                    block += line.substr(indent);
+                    continue;
+                }
+                finishBlock();
+                if (indent != 0 || line.empty() || line[0] == '#')
+                    continue;
+                const std::size_t colon = line.find(':');
+                if (colon == std::string::npos)
+                    continue;
+                const std::string key = line.substr(0, colon);
+                std::string value = line.substr(colon + 1);
+                value.erase(0, std::min(value.find_first_not_of(" \t"), value.size()));
+                if (value.empty() || value[0] == '|' || value[0] == '>')
+                {
+                    blockKey = key;
+                    blockJoin = (!value.empty() && value[0] == '>') ? ' ' : '\n';
+                    continue;
+                }
+                if (value.size() >= 2 && (value[0] == '"' || value[0] == '\'') && value.back() == value[0])
+                    value = value.substr(1, value.size() - 2);
+                std::string unescaped;
+                for (std::size_t i = 0; i < value.size(); ++i)
+                {
+                    if (value[i] == '\\' && i + 1 < value.size())
+                    {
+                        const char next = value[++i];
+                        unescaped += next == 'n' ? '\n' : next;
+                    }
+                    else
+                        unescaped += value[i];
+                }
+                texts[key] = unescaped;
+            }
+            finishBlock();
+        }
+        catch (const std::exception& e)
+        {
+            Log(Debug::Warning) << "Post-processing texts '" << path << "' could not be read: " << e.what();
+        }
+        Log(Debug::Info) << "Post-processing texts: " << texts.size() << " from " << path;
+        return texts;
+    }
+
+    // "WetworldPuddleReflectionIntensityName" -> "Wetworld Puddle Reflection Intensity", for packs without texts
+    std::string readableEffectKey(std::string key)
+    {
+        for (const std::string suffix : { "Name", "Header" })
+        {
+            if (key.size() > suffix.size() && key.compare(key.size() - suffix.size(), suffix.size(), suffix) == 0)
+            {
+                key.erase(key.size() - suffix.size());
+                break;
+            }
+        }
+        std::string words;
+        for (std::size_t i = 0; i < key.size(); ++i)
+        {
+            const char c = key[i];
+            if (c == '_')
+            {
+                words += ' ';
+                continue;
+            }
+            const bool upper = std::isupper(static_cast<unsigned char>(c)) != 0;
+            const bool afterLower = i > 0 && (std::islower(static_cast<unsigned char>(key[i - 1])) != 0
+                || std::isdigit(static_cast<unsigned char>(key[i - 1])) != 0);
+            const bool acronymEnd = i > 0 && i + 1 < key.size() && std::isupper(static_cast<unsigned char>(key[i - 1])) != 0
+                && std::islower(static_cast<unsigned char>(key[i + 1])) != 0;
+            if (upper && (afterLower || acronymEnd) && !words.empty() && words.back() != ' ')
+                words += ' ';
+            words += c;
+        }
+        return words;
+    }
+
     std::string localizePostFxText(const std::string& source, const std::string& fallback = std::string())
     {
         const std::string prefix = "#{OMWShaders:";
@@ -86,6 +205,22 @@ namespace
             // when no key exists. Do not expose an unresolved tag to the player.
             if (!localized.empty() && localized.find("#{arenamp=") == std::string::npos)
                 return localized;
+        }
+        // Other packs' tags, "#{Context:Key}" (Rafael's Shader Pack: "#{RafaelsShaderPack:...}"): the pack's own
+        // texts, else a readable name made from the key (descriptions stay out rather than show a made-up text)
+        const std::size_t colon = source.find(':');
+        if (source.size() > 3 && source.compare(0, 2, "#{") == 0 && source.back() == '}' && colon != std::string::npos)
+        {
+            const std::string context = source.substr(2, colon - 2);
+            const std::string key = source.substr(colon + 1, source.size() - colon - 2);
+            const auto& texts = effectPackTexts(context);
+            const auto text = texts.find(key);
+            if (text != texts.end() && !text->second.empty())
+                return text->second;
+            const bool isDescription = (key.size() > 4 && key.compare(key.size() - 4, 4, "Desc") == 0)
+                || (key.size() > 11 && key.compare(key.size() - 11, 11, "Description") == 0);
+            if (!isDescription && !key.empty())
+                return readableEffectKey(key);
         }
         if (!source.empty() && source.compare(0, 2, "#{") != 0)
             return MyGUI::LanguageManager::getInstance().replaceTags(source);
