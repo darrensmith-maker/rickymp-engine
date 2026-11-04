@@ -523,7 +523,13 @@ void Networking::preInit(std::vector<std::string> &content, std::vector<std::str
             LOG_APPEND(TimedLog::LOG_INFO, "Optional groundcover enabled: %s [%X]",
                 recommendation.first.c_str(), crc32);
         }
-        groundcover = orderedGroundcover;
+        // Grass is only drawn, never checked: a server that recommends none (servers whose core scripts do not
+        // send a groundcover list, or plain TES3MP ones) keeps the player's own groundcover instead of removing it
+        if (!responseGroundcover.empty())
+            groundcover = orderedGroundcover;
+        else
+            LOG_APPEND(TimedLog::LOG_INFO, "Server recommends no groundcover: keeping the %d groundcover file(s) of this client",
+                static_cast<int>(groundcover.size()));
 
         // Second pre-init: hashes are now calculated in the exact order supplied
         // by the server. Missing required files result in a shorter container and

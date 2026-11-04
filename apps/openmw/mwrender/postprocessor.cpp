@@ -1921,6 +1921,28 @@ namespace MWRender
             mTransparentDepthState->setTextureMode(unit, GL_TEXTURE_2D, off);
     }
 
+    namespace
+    {
+        // Additive objects (fire and glow cards: blending onto the destination with factor one) never hide what is
+        // behind them and write no depth when drawn. In the transparent post-pass depth they became solid cards,
+        // and ambient occlusion (HBAO) shaded flames into black blobs. The nearest blend function in the leaf's
+        // state graph decides.
+        bool isAdditive(const osgUtil::RenderLeaf* leaf)
+        {
+            for (const osgUtil::StateGraph* graph = leaf->_parent; graph != nullptr; graph = graph->_parent)
+            {
+                const osg::StateSet* stateSet = graph->getStateSet();
+                if (!stateSet)
+                    continue;
+                const osg::BlendFunc* blend
+                    = static_cast<const osg::BlendFunc*>(stateSet->getAttribute(osg::StateAttribute::BLENDFUNC));
+                if (blend)
+                    return blend->getDestinationRGB() == GL_ONE;
+            }
+            return false;
+        }
+    }
+
     void PostProcessor::drawTransparent(osgUtil::RenderBin* bin, osg::RenderInfo& renderInfo,
         osgUtil::RenderLeaf*& previous)
     {
@@ -1961,7 +1983,8 @@ namespace MWRender
         state.insertStateSet(insertStateSetPosition, mTransparentDepthState.get());
         for (osgUtil::RenderLeaf* leaf : bin->getRenderLeafList())
         {
-            if (leaf->_drawable->getNodeMask() == Mask_ParticleSystem)
+            const unsigned int mask = leaf->_drawable->getNodeMask();
+            if (mask == Mask_ParticleSystem || mask == Mask_Effect || isAdditive(leaf))
                 continue;
             const osg::StateSet* stateSet = leaf->_parent->getStateSet();
             if (stateSet && stateSet->getAttribute(osg::StateAttribute::MATERIAL))
