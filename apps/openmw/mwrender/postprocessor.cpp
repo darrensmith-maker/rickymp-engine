@@ -1941,6 +1941,30 @@ namespace MWRender
             }
             return false;
         }
+
+        // The nearest material in the leaf's state graph (a shape's own, or the one it inherits)
+        const osg::Material* nearestMaterial(const osgUtil::RenderLeaf* leaf)
+        {
+            for (const osgUtil::StateGraph* graph = leaf->_parent; graph != nullptr; graph = graph->_parent)
+            {
+                const osg::StateSet* stateSet = graph->getStateSet();
+                if (!stateSet)
+                    continue;
+                if (const osg::StateAttribute* material = stateSet->getAttribute(osg::StateAttribute::MATERIAL))
+                    return static_cast<const osg::Material*>(material);
+            }
+            return nullptr;
+        }
+
+        // Self-lit objects (flame cards, glowing lantern glass and paper: emissive materials, which the NIF loader
+        // also gives to vertex-colour emission) are light sources. Many modded flames blend normally rather than
+        // additively (Enlightened Flames candles and lanterns, the Improved Lights campfire card), so as solid
+        // cards in the post-pass depth they were still shaded black by ambient occlusion. Light is not occluded.
+        bool isSelfLit(const osg::Material* material)
+        {
+            const osg::Vec4& emission = material->getEmission(osg::Material::FRONT);
+            return std::max(emission.r(), std::max(emission.g(), emission.b())) >= 0.5f;
+        }
     }
 
     void PostProcessor::drawTransparent(osgUtil::RenderBin* bin, osg::RenderInfo& renderInfo,
@@ -1970,7 +1994,8 @@ namespace MWRender
             return;
 
         // Then the transparent objects again, into the copy only, clipped to their opaque texels (OpenMW 0.51's
-        // "transparent post-pass"). Particles and objects whose material is mostly see-through are left out.
+        // "transparent post-pass"). Particles, additive and self-lit objects (flames, glows) and objects whose
+        // material is mostly see-through are left out.
         GLint drawBinding = 0;
         glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING_EXT, &drawBinding);
         world->apply(state, osg::FrameBufferObject::DRAW_FRAMEBUFFER);
@@ -1986,12 +2011,9 @@ namespace MWRender
             const unsigned int mask = leaf->_drawable->getNodeMask();
             if (mask == Mask_ParticleSystem || mask == Mask_Effect || isAdditive(leaf))
                 continue;
-            const osg::StateSet* stateSet = leaf->_parent->getStateSet();
-            if (stateSet && stateSet->getAttribute(osg::StateAttribute::MATERIAL))
+            if (const osg::Material* material = nearestMaterial(leaf))
             {
-                const osg::Material* material
-                    = static_cast<const osg::Material*>(stateSet->getAttribute(osg::StateAttribute::MATERIAL));
-                if (material->getDiffuse(osg::Material::FRONT).a() < 0.5f)
+                if (material->getDiffuse(osg::Material::FRONT).a() < 0.5f || isSelfLit(material))
                     continue;
             }
             leaf->render(renderInfo, previous);
